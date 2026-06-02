@@ -1,6 +1,6 @@
-import type { Config } from 'jest';
+import { defineConfig } from 'jest';
 
-const config: Config = {
+export default defineConfig({
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
@@ -20,11 +20,7 @@ const config: Config = {
   },
   testMatch: ['<rootDir>/**/*.test.ts'],
   testPathIgnorePatterns: ['/node_modules/', '/dist/'],
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.test.ts',
-    '!src/index.ts',
-  ],
-};
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.test.ts', '!src/index.ts'],
+});
 
-export default config;
+// export = config;
