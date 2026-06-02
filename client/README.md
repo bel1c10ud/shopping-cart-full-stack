@@ -1,73 +1,76 @@
-# React + TypeScript + Vite
+# 장바구니 FE 2단계 요구사항
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 1. 장바구니 상품 조회
 
-Currently, two official plugins are available:
+- [ ] 장바구니 페이지에 진입하면 `GET /cart` API를 호출한다.
+- [ ] 조회한 상품의 이름, 이미지, 가격, 수량을 표시한다.
+- [ ] 진입 시 모든 상품을 선택된 상태로 표시한다.
+- [ ] 장바구니가 비어 있으면 빈 장바구니 UI를 표시한다.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 2. 상품 선택
 
-## React Compiler
+- [ ] 개별 상품을 선택하거나 선택 해제할 수 있다.
+- [ ] 전체 상품을 한 번에 선택하거나 선택 해제할 수 있다.
+- [ ] 상품 선택 여부는 새로고침 후에도 유지한다.
+- [ ] 제거된 상품의 선택 정보는 함께 제거한다.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 3. 결제 금액과 배송비
 
-## Expanding the ESLint configuration
+- [ ] 선택된 상품의 가격과 수량을 기준으로 결제 금액을 계산한다.
+- [ ] 상품 선택 또는 수량 변경 시 결제 금액을 즉시 갱신한다.
+- [ ] 결제 금액이 100,000원 이상이면 배송비를 무료로 표시한다.
+- [ ] 결제 금액이 100,000원 미만이면 배송비를 3,000원으로 표시한다.
+- [ ] 기본 배송비 3,000원과 무료 배송 기준 금액 100,000원은 상수로 관리한다.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 4. 상품 수량 변경
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- [ ] 장바구니 상품의 수량을 변경할 수 있다.
+- [ ] 수량은 1개 이상 99개 이하로 제한한다.
+- [ ] 수량 변경 시 `PATCH /cart/:cartItemId` API를 호출한다.
+- [ ] API 요청에 실패하면 사용자에게 에러 메시지를 표시한다.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 5. 상품 제거
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- [ ] 장바구니 상품을 제거할 수 있다.
+- [ ] 제거 시 `DELETE /cart/:cartItemId` API를 호출한다.
+- [ ] 제거된 상품을 화면과 선택 상태에서 제거한다.
+- [ ] API 요청에 실패하면 사용자에게 에러 메시지를 표시한다.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 6. 주문 확인
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- [ ] 선택된 상품이 있으면 주문 확인 버튼을 활성화한다.
+- [ ] 선택된 상품이 없으면 주문 확인 버튼을 비활성화한다.
+- [ ] 주문 확인 버튼을 누르면 주문 확인 페이지로 이동한다.
+- [ ] 주문 확인 페이지에는 주문할 상품 종류 수와 총수량을 표시한다.
+- [ ] 주문 확인 페이지에는 배송비를 포함한 총 결제 금액을 표시한다.
+- [ ] 주문 확인 페이지에서 뒤로가기 버튼을 누르면 장바구니 페이지로 이동한다.
+- [ ] 주문 확인 페이지 하단에는 결제하기 버튼을 표시한다.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 7. 서버 상태 관리
+
+- [ ] 서버 상태를 관리하는 data fetching hook을 직접 구현한다.
+- [ ] hook은 데이터, 로딩 여부, 에러 정보를 제공한다.
+- [ ] API 요청 중에는 로딩 UI를 표시한다.
+- [ ] API 요청 실패 시에는 에러 UI를 표시한다.
+- [ ] 결제 금액과 배송비는 별도 상태로 저장하지 않고 파생 상태로 계산한다.
+
+## 8. 테스트
+
+- [ ] Jest와 React Testing Library를 사용한다.
+- [ ] 비동기 API 테스트에는 MSW를 사용한다.
+- [ ] 상품 조회, 선택, 수량 변경, 제거 동작을 테스트한다.
+- [ ] 결제 금액과 배송비 계산을 테스트한다.
+- [ ] 주문 확인 페이지 이동과 주문 요약 표시를 테스트한다.
+- [ ] 로딩 UI와 에러 UI를 테스트한다.
+
+## 9. 코드 작성 요구사항
+
+- [ ] 컴포넌트와 비즈니스 로직을 분리한다.
+- [ ] 재사용 가능한 컴포넌트 인터페이스를 고민한다.
+- [ ] 구현 세부 사항이 드러나는 props 이름을 피한다.
+- [ ] 스타일링에는 CSS Module, styled-components, emotion 중 하나를 사용한다.
+- [ ] 명시된 라이브러리 외에는 사용하지 않고 직접 구현한다.
+
+## 10. API 문서
+
+API 명세는 [../docs/api.md](../docs/api.md)를 참고한다.
