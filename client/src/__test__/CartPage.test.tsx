@@ -214,4 +214,111 @@ describe('CartPage', () => {
     expect(checkboxA_refreshed).not.toBeChecked();
     expect(checkboxB_refreshed).toBeChecked();
   });
+
+  it('선택된 상품의 가격과 수량을 기준으로 결제 금액을 계산한다 (100,000원 미만 시 배송비 3,000원)', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    localStorage.clear();
+
+    render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    // 총 상품금액 95,000원 (< 10만원) -> 배송비 3,000원 적용
+    expect(screen.getByTestId('subtotalAmount')).toHaveAttribute('data-value', '95000');
+    expect(screen.getByTestId('shippingAmount')).toHaveAttribute('data-value', '3000');
+    expect(screen.getByTestId('totalAmount')).toHaveAttribute('data-value', '98000');
+  });
+
+  it('결제 금액이 100,000원 이상이면 배송비를 무료(0원)로 표시한다', async () => {
+    const expensiveCartItems = [
+      {
+        ...mockCartItems[0],
+        quantity: 3, // 35,000원 * 3 = 105,000원
+      },
+    ];
+
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: expensiveCartItems,
+        });
+      }),
+    );
+
+    localStorage.clear();
+
+    render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    // 총 상품금액 105,000원 (>= 10만원) -> 배송비 무료 (0원)
+    expect(screen.getByTestId('subtotalAmount')).toHaveAttribute('data-value', '105000');
+    expect(screen.getByTestId('shippingAmount')).toHaveAttribute('data-value', '0');
+    expect(screen.getByTestId('totalAmount')).toHaveAttribute('data-value', '105000');
+  });
+
+  it('상품 선택 또는 수량 변경 시 결제 금액을 즉시 갱신한다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    const patchHandler = vi.fn();
+    server.use(
+      http.patch(`${import.meta.env.VITE_API_URL}/cart/1`, () => {
+        patchHandler();
+        return HttpResponse.json({
+          status: 'success',
+          data: {
+            ...mockCartItems[0],
+            quantity: 3,
+          },
+        });
+      }),
+    );
+
+    localStorage.clear();
+
+    render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    // 초기 상태: 95,000원 + 3,000원 = 98,000원
+    expect(screen.getByTestId('totalAmount')).toHaveAttribute('data-value', '98000');
+
+    const itemB = screen.getByText('상품이름B').closest('li')!;
+    const checkboxB = within(itemB).getByRole('checkbox');
+
+    // 1. 상품B 선택 해제 -> 상품A(70,000원)만 선택 (< 10만원) -> 배송비 3,000원 적용
+    fireEvent.click(checkboxB);
+    expect(screen.getByTestId('subtotalAmount')).toHaveAttribute('data-value', '70000');
+    expect(screen.getByTestId('totalAmount')).toHaveAttribute('data-value', '73000');
+
+    // 2. 수량 변경 -> 상품A 3개(105,000원)로 변경 (>= 10만원) -> 배송비 무료(0원)
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const plusButton = within(itemA).getByRole('button', { name: '+' });
+
+    fireEvent.click(plusButton);
+
+    await waitFor(() => {
+      expect(patchHandler).toHaveBeenCalled();
+    });
+
+    expect(screen.getByTestId('subtotalAmount')).toHaveAttribute('data-value', '105000');
+    expect(screen.getByTestId('shippingAmount')).toHaveAttribute('data-value', '0');
+    expect(screen.getByTestId('totalAmount')).toHaveAttribute('data-value', '105000');
+  });
 });
