@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import CartPage from '../pages/CartPage';
 import { server } from '../mocks/server';
@@ -112,5 +112,106 @@ describe('CartPage', () => {
     render(<CartPage />);
 
     expect(await screen.findByText('장바구니에 담은 상품이 없습니다.')).toBeInTheDocument();
+  });
+
+  it('개별 상품을 선택하거나 선택 해제할 수 있다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    localStorage.clear();
+
+    render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const checkboxA = within(itemA).getByRole('checkbox');
+
+    expect(checkboxA).toBeChecked();
+
+    fireEvent.click(checkboxA);
+    expect(checkboxA).not.toBeChecked();
+
+    fireEvent.click(checkboxA);
+    expect(checkboxA).toBeChecked();
+  });
+
+  it('전체 상품을 한 번에 선택하거나 선택 해제할 수 있다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    localStorage.clear();
+
+    render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    const selectAllCheckbox = screen.getAllByRole('checkbox')[0];
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const checkboxA = within(itemA).getByRole('checkbox');
+    const itemB = screen.getByText('상품이름B').closest('li')!;
+    const checkboxB = within(itemB).getByRole('checkbox');
+
+    expect(selectAllCheckbox).toBeChecked();
+    expect(checkboxA).toBeChecked();
+    expect(checkboxB).toBeChecked();
+
+    fireEvent.click(selectAllCheckbox);
+    expect(selectAllCheckbox).not.toBeChecked();
+    expect(checkboxA).not.toBeChecked();
+    expect(checkboxB).not.toBeChecked();
+
+    fireEvent.click(selectAllCheckbox);
+    expect(selectAllCheckbox).toBeChecked();
+    expect(checkboxA).toBeChecked();
+    expect(checkboxB).toBeChecked();
+  });
+
+  it('상품 선택 여부는 새로고침 후에도 유지한다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    localStorage.clear();
+
+    const { unmount } = render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const checkboxA = within(itemA).getByRole('checkbox');
+
+    fireEvent.click(checkboxA);
+    expect(checkboxA).not.toBeChecked();
+
+    unmount();
+    render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    const itemA_refreshed = screen.getByText('상품이름A').closest('li')!;
+    const checkboxA_refreshed = within(itemA_refreshed).getByRole('checkbox');
+    const itemB_refreshed = screen.getByText('상품이름B').closest('li')!;
+    const checkboxB_refreshed = within(itemB_refreshed).getByRole('checkbox');
+
+    expect(checkboxA_refreshed).not.toBeChecked();
+    expect(checkboxB_refreshed).toBeChecked();
   });
 });
