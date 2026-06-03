@@ -1,8 +1,11 @@
 module.exports = {
-  testEnvironment: 'jsdom',
+  testEnvironment: '<rootDir>/src/testEnvironment.cjs',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   transform: {
-    '^.+\\.[jt]sx?$': 'babel-jest',
+    '^.+\\.[cm]?[jt]sx?$': 'babel-jest',
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(@mswjs/interceptors|rettime|until-async)/)',
+  ],
   watchman: false,
 };
