@@ -30,10 +30,10 @@ const mockCartItems = [
 
 describe('CartPage', () => {
   it('장바구니 페이지에 진입하면 `GET /cart` API를 호출한다', async () => {
-    const requestCart = jest.fn();
+    const requestCart = vi.fn();
 
     server.use(
-      http.get('/cart', () => {
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
         requestCart();
 
         return HttpResponse.json({
@@ -52,7 +52,7 @@ describe('CartPage', () => {
 
   it('조회한 상품의 이름, 이미지, 가격, 수량을 표시한다', async () => {
     server.use(
-      http.get('/cart', () => {
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
         return HttpResponse.json({
           status: 'success',
           data: mockCartItems,
@@ -70,13 +70,13 @@ describe('CartPage', () => {
     expect(screen.getByText(/35,?000/)).toBeInTheDocument();
     expect(screen.getByText(/25,?000/)).toBeInTheDocument();
 
-    expect(screen.getByDisplayValue('2')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('1')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   it('진입 시 모든 상품을 선택된 상태로 표시한다', async () => {
     server.use(
-      http.get('/cart', () => {
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
         return HttpResponse.json({
           status: 'success',
           data: mockCartItems,
@@ -101,7 +101,7 @@ describe('CartPage', () => {
 
   it('장바구니가 비어 있으면 빈 장바구니 UI를 표시한다', async () => {
     server.use(
-      http.get('/cart', () => {
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
         return HttpResponse.json({
           status: 'success',
           data: [],
