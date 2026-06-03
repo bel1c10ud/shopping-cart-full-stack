@@ -132,12 +132,19 @@ describe('CartPage', () => {
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
     const checkboxA = within(itemA).getByRole('checkbox');
+    const itemB = screen.getByText('상품이름B').closest('li')!;
+    const checkboxB = within(itemB).getByRole('checkbox');
 
+    // 1. 진입 시에는 모든 상품이 기본적으로 선택되어 있음
     expect(checkboxA).toBeChecked();
+    expect(checkboxB).toBeChecked();
 
+    // 2. 상품A 클릭 시 선택 해제 검증
     fireEvent.click(checkboxA);
     expect(checkboxA).not.toBeChecked();
+    expect(checkboxB).toBeChecked();
 
+    // 3. 상품A 다시 클릭 시 재선택 검증
     fireEvent.click(checkboxA);
     expect(checkboxA).toBeChecked();
   });
@@ -164,15 +171,18 @@ describe('CartPage', () => {
     const itemB = screen.getByText('상품이름B').closest('li')!;
     const checkboxB = within(itemB).getByRole('checkbox');
 
+    // 1. 초기 상태: 전체선택 및 개별 상품 모두 선택되어 있음
     expect(selectAllCheckbox).toBeChecked();
     expect(checkboxA).toBeChecked();
     expect(checkboxB).toBeChecked();
 
+    // 2. 전체선택 해제 시 모든 개별 상품도 함께 해제 검증
     fireEvent.click(selectAllCheckbox);
     expect(selectAllCheckbox).not.toBeChecked();
     expect(checkboxA).not.toBeChecked();
     expect(checkboxB).not.toBeChecked();
 
+    // 3. 전체선택 재활성화 시 모든 개별 상품도 재선택 검증
     fireEvent.click(selectAllCheckbox);
     expect(selectAllCheckbox).toBeChecked();
     expect(checkboxA).toBeChecked();
@@ -198,9 +208,11 @@ describe('CartPage', () => {
     const itemA = screen.getByText('상품이름A').closest('li')!;
     const checkboxA = within(itemA).getByRole('checkbox');
 
+    // 1. 상품A 선택 해제
     fireEvent.click(checkboxA);
     expect(checkboxA).not.toBeChecked();
 
+    // 2. 언마운트 후 다시 렌더링(새로고침 상황 모사)
     unmount();
     render(<CartPage />);
 
@@ -211,6 +223,7 @@ describe('CartPage', () => {
     const itemB_refreshed = screen.getByText('상품이름B').closest('li')!;
     const checkboxB_refreshed = within(itemB_refreshed).getByRole('checkbox');
 
+    // 3. 상품A는 해제 상태, 상품B는 선택 상태가 유지되는지 검증
     expect(checkboxA_refreshed).not.toBeChecked();
     expect(checkboxB_refreshed).toBeChecked();
   });
