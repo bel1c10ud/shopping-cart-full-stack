@@ -5,7 +5,7 @@ module.exports = {
     '^.+\\.[cm]?[jt]sx?$': 'babel-jest',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(@mswjs/interceptors|rettime|until-async)/)',
+    'node_modules/(?!(@mswjs/interceptors|@open-draft/deferred-promise|rettime|until-async)/)',
   ],
   watchman: false,
 };
