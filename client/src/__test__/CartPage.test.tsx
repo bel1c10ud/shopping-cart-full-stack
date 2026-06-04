@@ -2,33 +2,38 @@ import { render, screen, waitFor, within, fireEvent } from '@testing-library/rea
 import { http, HttpResponse } from 'msw';
 import CartPage from '../pages/CartPage';
 import { server } from '../mocks/server';
-
-const mockCartItems = [
-  {
-    cartItemId: '1',
-    quantity: 2,
-    product: {
-      productId: 'a',
-      name: '상품이름A',
-      price: 35000,
-      image: 'https://picsum.photos/128/128',
-      stock: 10,
-    },
-  },
-  {
-    cartItemId: '2',
-    quantity: 1,
-    product: {
-      productId: 'b',
-      name: '상품이름B',
-      price: 25000,
-      image: 'https://picsum.photos/128/128',
-      stock: 5,
-    },
-  },
-];
+import type { CartItem } from '../types';
 
 describe('CartPage', () => {
+  let mockCartItems: CartItem[];
+
+  beforeEach(() => {
+    mockCartItems = [
+      {
+        cartItemId: '1',
+        quantity: 2,
+        product: {
+          productId: 'a',
+          name: '상품이름A',
+          price: 35000,
+          image: 'https://picsum.photos/128/128',
+          stock: 10,
+        },
+      },
+      {
+        cartItemId: '2',
+        quantity: 1,
+        product: {
+          productId: 'b',
+          name: '상품이름B',
+          price: 25000,
+          image: 'https://picsum.photos/128/128',
+          stock: 5,
+        },
+      },
+    ];
+  });
+
   it('장바구니 페이지에 진입하면 `GET /cart` API를 호출한다', async () => {
     const requestCart = vi.fn();
 
@@ -290,15 +295,22 @@ describe('CartPage', () => {
     );
 
     const patchHandler = vi.fn();
+
     server.use(
-      http.patch(`${import.meta.env.VITE_API_URL}/cart/1`, () => {
+      http.patch(`${import.meta.env.VITE_API_URL}/cart/:cartItemId`, async ({ request, params }) => {
         patchHandler();
+        const { cartItemId } = params;
+        const body = (await request.json()) as { quantity: number };
+
+        mockCartItems = mockCartItems.map((item) =>
+          item.cartItemId === cartItemId ? { ...item, quantity: body.quantity } : item,
+        );
+
+        const updatedItem = mockCartItems.find((item) => item.cartItemId === cartItemId);
+
         return HttpResponse.json({
           status: 'success',
-          data: {
-            ...mockCartItems[0],
-            quantity: 3,
-          },
+          data: updatedItem,
         });
       }),
     );
@@ -333,5 +345,148 @@ describe('CartPage', () => {
     expect(screen.getByLabelText('주문 금액')).toHaveAttribute('data-value', '105000');
     expect(screen.getByLabelText('배송비')).toHaveAttribute('data-value', '0');
     expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', '105000');
+  });
+
+  it('장바구니 상품의 수량을 변경할 수 있다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    server.use(
+      http.patch(`${import.meta.env.VITE_API_URL}/cart/:cartItemId`, async ({ request, params }) => {
+        const { cartItemId } = params;
+        const body = (await request.json()) as { quantity: number };
+
+        mockCartItems = mockCartItems.map((item) =>
+          item.cartItemId === cartItemId ? { ...item, quantity: body.quantity } : item,
+        );
+
+        const updatedItem = mockCartItems.find((item) => item.cartItemId === cartItemId);
+
+        return HttpResponse.json({
+          status: 'success',
+          data: updatedItem,
+        });
+      }),
+    );
+
+    render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const plusButton = within(itemA).getByRole('button', { name: '+' });
+
+    fireEvent.click(plusButton);
+
+    expect(await within(itemA).findByText('3')).toBeInTheDocument();
+  });
+
+  it('수량은 1개 이상 99개 이하로 제한한다', async () => {
+    // 1. 수량이 1일 때 - 버튼 비활성화 확인
+    mockCartItems[0].quantity = 1;
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    const { unmount } = render(<CartPage />);
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const minusButton = within(itemA).getByRole('button', { name: '-' });
+    expect(minusButton).toBeDisabled();
+
+    // 2. 수량이 99일 때 + 버튼 비활성화 확인
+    unmount();
+
+    mockCartItems[0].quantity = 99;
+
+    render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    const itemA_99 = screen.getByText('상품이름A').closest('li')!;
+    const plusButton = within(itemA_99).getByRole('button', { name: '+' });
+    expect(plusButton).toBeDisabled();
+  });
+
+  it('수량 변경 시 PATCH /cart/:cartItemId API를 호출한다', async () => {
+    const patchSpy = vi.fn();
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    server.use(
+      http.patch(`${import.meta.env.VITE_API_URL}/cart/:cartItemId`, ({ params }) => {
+        patchSpy(params.cartItemId);
+        return HttpResponse.json({
+          status: 'success',
+          data: {
+            ...mockCartItems[0],
+            quantity: 3,
+          },
+        });
+      }),
+    );
+
+    render(<CartPage />);
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const plusButton = within(itemA).getByRole('button', { name: '+' });
+
+    fireEvent.click(plusButton);
+
+    await waitFor(() => {
+      expect(patchSpy).toHaveBeenCalledWith('1');
+    });
+  });
+
+  it('API 요청에 실패하면 사용자에게 에러 메시지를 표시한다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    server.use(
+      http.patch(`${import.meta.env.VITE_API_URL}/cart/1`, () => {
+        return new HttpResponse(null, { status: 400 });
+      }),
+    );
+
+    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    render(<CartPage />);
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const plusButton = within(itemA).getByRole('button', { name: '+' });
+
+    fireEvent.click(plusButton);
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalled();
+    });
+
+    alertMock.mockRestore();
   });
 });
