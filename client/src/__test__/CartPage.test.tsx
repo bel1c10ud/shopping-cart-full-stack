@@ -489,4 +489,146 @@ describe('CartPage', () => {
 
     alertMock.mockRestore();
   });
+
+  it('장바구니 상품을 제거할 수 있다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    server.use(
+      http.delete(`${import.meta.env.VITE_API_URL}/cart/:cartItemId`, ({ params }) => {
+        const { cartItemId } = params;
+
+        mockCartItems = mockCartItems.filter((item) => item.cartItemId !== cartItemId);
+
+        return HttpResponse.json({
+          status: 'success',
+          data: cartItemId,
+        });
+      }),
+    );
+
+    render(<CartPage />);
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const deleteButton = within(itemA).getByRole('button', { name: '삭제' });
+
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('상품이름A')).not.toBeInTheDocument();
+    });
+  });
+
+  it('제거 시 DELETE /cart/:cartItemId API를 호출한다', async () => {
+    const deleteSpy = vi.fn();
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    server.use(
+      http.delete(`${import.meta.env.VITE_API_URL}/cart/:cartItemId`, ({ params }) => {
+        deleteSpy(params.cartItemId);
+        return HttpResponse.json({
+          status: 'success',
+          data: params.cartItemId,
+        });
+      }),
+    );
+
+    render(<CartPage />);
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const deleteButton = within(itemA).getByRole('button', { name: '삭제' });
+
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(deleteSpy).toHaveBeenCalledWith('1');
+    });
+  });
+
+  it('제거된 상품을 화면과 선택 상태에서 제거하고 선택 정보도 함께 제거한다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    server.use(
+      http.delete(`${import.meta.env.VITE_API_URL}/cart/:cartItemId`, ({ params }) => {
+        return HttpResponse.json({
+          status: 'success',
+          data: params.cartItemId,
+        });
+      }),
+    );
+
+    localStorage.clear();
+    localStorage.setItem('woowacourse-mission-cart', JSON.stringify({ '1': true, '2': true }));
+
+    render(<CartPage />);
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const deleteButton = within(itemA).getByRole('button', { name: '삭제' });
+
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText('상품이름A')).not.toBeInTheDocument();
+    });
+
+    const stored = JSON.parse(localStorage.getItem('woowacourse-mission-cart') || '{}');
+    expect(stored['1']).toBeUndefined();
+    expect(stored['2']).toBe(true);
+  });
+
+  it('제거 API 요청에 실패하면 사용자에게 에러 메시지를 표시한다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    server.use(
+      http.delete(`${import.meta.env.VITE_API_URL}/cart/:cartItemId`, () => {
+        return new HttpResponse(null, { status: 400 });
+      }),
+    );
+
+    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    render(<CartPage />);
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const deleteButton = within(itemA).getByRole('button', { name: '삭제' });
+
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalled();
+    });
+
+    alertMock.mockRestore();
+  });
 });
