@@ -76,3 +76,8 @@ h6 {
 #__next {
   isolation: isolate;
 }
+
+ul {
+  list-style: none;
+  padding: 0;
+}

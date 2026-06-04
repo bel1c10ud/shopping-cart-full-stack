@@ -1,7 +1,7 @@
-import CartEmpty from '../components/CartEmpty';
-import CartError from '../components/CartError';
-import CartLayout from '../components/CartLayout';
-import CartSkeleton from '../components/CartSkeleton';
+import CartEmptyTemplate from '../components/templates/CartEmptyTemplate';
+import CartErrorTemplate from '../components/templates/CartErrorTemplate';
+import CartTemplate from '../components/templates/CartTemplate';
+import CartSkeletonTemplate from '../components/templates/CartSkeletonTemplate';
 import useQuery from '../hooks/useQuery';
 import type { APIResponse, CartItem } from '../types';
 
@@ -10,8 +10,8 @@ export default function CartPage() {
     url: `${import.meta.env.VITE_API_URL}/cart`,
   });
 
-  if (!data) return <CartSkeleton />;
-  if (data && data.status === 'success' && data.data.length === 0) return <CartEmpty />;
-  if (data && data.status === 'success') return <CartLayout data={data.data} refetchData={refetch} />;
-  return <CartError />;
+  if (!data) return <CartSkeletonTemplate />;
+  if (data && data.status === 'success' && data.data.length === 0) return <CartEmptyTemplate />;
+  if (data && data.status === 'success') return <CartTemplate data={data.data} refetchData={refetch} />;
+  return <CartErrorTemplate />;
 }

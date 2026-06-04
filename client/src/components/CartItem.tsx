@@ -1,17 +1,16 @@
-import type { ChangeEventHandler } from 'react';
 import type { APIResponse, CartItem } from '../types';
 import useMutation from '../hooks/useMutation';
+import type { ChangeEvent } from 'react';
+import { formatWon } from '../utils';
 
 export default function CartItem(props: {
   data: CartItem;
-  isChecked: boolean;
-  storage: Record<string, boolean>;
-  setStorage: (value: Record<string, boolean>) => void;
-  onChange: ChangeEventHandler<HTMLInputElement>;
+  checked: boolean;
+  onChangeChecked: (value: boolean) => void;
   onUpdate: () => void;
   onDelete: () => void;
 }) {
-  const { status, mutate } = useMutation<APIResponse<CartItem>>({
+  const updateMutation = useMutation<APIResponse<CartItem>>({
     url: `${import.meta.env.VITE_API_URL}/cart/${props.data.cartItemId}`,
     method: 'PATCH',
     headers: {
@@ -35,10 +34,6 @@ export default function CartItem(props: {
     },
     onSuccess: (response) => {
       if (response && response.status === 'success') {
-        console.log(response);
-        const newStorage = { ...props.storage };
-        delete newStorage[response.data.cartItemId];
-        props.setStorage(newStorage);
         props.onDelete();
       }
     },
@@ -47,28 +42,38 @@ export default function CartItem(props: {
     },
   });
 
+  const handleChangeChecked = (e: ChangeEvent<HTMLInputElement>) => props.onChangeChecked(e.target.checked);
+
   return (
     <li>
       <div>
-        <input type="checkbox" checked={props.isChecked} onChange={props.onChange} />
+        <input type="checkbox" checked={props.checked} onChange={handleChangeChecked} />
         <button onClick={() => deleteMutation.mutate()}>삭제</button>
       </div>
       <div>
         <img src={props.data.product.image} />
         <div>
           <div>{props.data.product.name}</div>
-          <span>{props.data.product.price}</span>
+          <span>{formatWon(props.data.product.price)}</span>
           <div>
             <button
-              onClick={() => mutate({ body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity - 1 } })}
-              disabled={status === 'loading' || props.data.quantity <= 1}
+              onClick={() =>
+                updateMutation.mutate({
+                  body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity - 1 },
+                })
+              }
+              disabled={updateMutation.status === 'loading' || props.data.quantity <= 1}
             >
               -
             </button>
             <span>{props.data.quantity}</span>
             <button
-              onClick={() => mutate({ body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity + 1 } })}
-              disabled={status === 'loading' || props.data.quantity >= 99}
+              onClick={() =>
+                updateMutation.mutate({
+                  body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity + 1 },
+                })
+              }
+              disabled={updateMutation.status === 'loading' || props.data.quantity >= 99}
             >
               +
             </button>

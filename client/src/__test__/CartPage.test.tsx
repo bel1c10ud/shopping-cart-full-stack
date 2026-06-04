@@ -5,6 +5,8 @@ import { server } from '../mocks/server';
 import type { CartItem } from '../types';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import OrderPage from '../pages/OrderPage';
+import { CART_SELECT_LOCAL_STORAGE_KEY } from '../hooks/useCartItemSelection';
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../hooks/useCalculateCartAmount';
 
 describe('CartPage', () => {
   let mockCartItems: CartItem[];
@@ -291,7 +293,7 @@ describe('CartPage', () => {
     expect(checkboxB_refreshed).toBeChecked();
   });
 
-  it('선택된 상품의 가격과 수량을 기준으로 결제 금액을 계산한다 (100,000원 미만 시 배송비 3,000원)', async () => {
+  it(`선택된 상품의 가격과 수량을 기준으로 결제 금액을 계산한다 (${FREE_SHIPPING_THRESHOLD.toLocaleString()}원 미만 시 배송비 ${SHIPPING_FEE.toLocaleString()}원)`, async () => {
     server.use(
       http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
         return HttpResponse.json({
@@ -314,13 +316,15 @@ describe('CartPage', () => {
 
     await screen.findByText('상품이름A');
 
-    // 총 상품금액 95,000원 (< 10만원) -> 배송비 3,000원 적용
-    expect(screen.getByLabelText('주문 금액')).toHaveAttribute('data-value', '95000');
-    expect(screen.getByLabelText('배송비')).toHaveAttribute('data-value', '3000');
-    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', '98000');
+    const orderAmount = 95_000;
+    const totalAmount = orderAmount + SHIPPING_FEE;
+
+    expect(screen.getByLabelText('주문 금액')).toHaveAttribute('data-value', orderAmount.toString());
+    expect(screen.getByLabelText('배송비')).toHaveAttribute('data-value', SHIPPING_FEE.toString());
+    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', totalAmount.toString());
   });
 
-  it('결제 금액이 100,000원 이상이면 배송비를 무료(0원)로 표시한다', async () => {
+  it(`결제 금액이 ${FREE_SHIPPING_THRESHOLD.toLocaleString()}원 이상이면 배송비를 무료(0원)로 표시한다`, async () => {
     const expensiveCartItems = [
       {
         ...mockCartItems[0],
@@ -400,16 +404,20 @@ describe('CartPage', () => {
 
     await screen.findByText('상품이름A');
 
-    // 초기 상태: 95,000원 + 3,000원 = 98,000원
-    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', '98000');
+    const initialOrderAmount = 95_000;
+    const initialTotalAmount = initialOrderAmount + SHIPPING_FEE;
+
+    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', initialTotalAmount.toString());
 
     const itemB = screen.getByText('상품이름B').closest('li')!;
     const checkboxB = within(itemB).getByRole('checkbox');
 
-    // 1. 상품B 선택 해제 -> 상품A(70,000원)만 선택 (< 10만원) -> 배송비 3,000원 적용
     fireEvent.click(checkboxB);
-    expect(screen.getByLabelText('주문 금액')).toHaveAttribute('data-value', '70000');
-    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', '73000');
+    const selectedOrderAmount = 70_000;
+    const selectedTotalAmount = selectedOrderAmount + SHIPPING_FEE;
+
+    expect(screen.getByLabelText('주문 금액')).toHaveAttribute('data-value', selectedOrderAmount.toString());
+    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', selectedTotalAmount.toString());
 
     // 2. 수량 변경 -> 상품A 3개(105,000원)로 변경 (>= 10만원) -> 배송비 무료(0원)
     const itemA = screen.getByText('상품이름A').closest('li')!;
@@ -710,7 +718,7 @@ describe('CartPage', () => {
     );
 
     localStorage.clear();
-    localStorage.setItem('woowacourse-mission-cart', JSON.stringify({ '1': true, '2': true }));
+    localStorage.setItem(CART_SELECT_LOCAL_STORAGE_KEY, JSON.stringify({ '1': true, '2': true }));
 
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -731,7 +739,7 @@ describe('CartPage', () => {
       expect(screen.queryByText('상품이름A')).not.toBeInTheDocument();
     });
 
-    const stored = JSON.parse(localStorage.getItem('woowacourse-mission-cart') || '{}');
+    const stored = JSON.parse(localStorage.getItem(CART_SELECT_LOCAL_STORAGE_KEY) || '{}');
     expect(stored['1']).toBeUndefined();
     expect(stored['2']).toBe(true);
   });
@@ -844,8 +852,10 @@ describe('CartPage', () => {
     expect(await screen.findByText(/2종류/)).toBeInTheDocument();
     expect(screen.getByText(/3개/)).toBeInTheDocument();
 
-    // 배송비를 포함한 총 결제 금액 표시 검증 (95,000 + 3,000 = 98,000)
-    expect(screen.getByText(/98,?000원?/)).toBeInTheDocument();
+    const orderAmount = 95_000;
+    const totalAmountText = (orderAmount + SHIPPING_FEE).toLocaleString().replace(',', ',?');
+
+    expect(screen.getByText(new RegExp(`${totalAmountText}원?`))).toBeInTheDocument();
 
     // 결제하기 버튼 표시 검증
     expect(screen.getByRole('button', { name: '결제하기' })).toBeInTheDocument();

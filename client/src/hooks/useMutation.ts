@@ -1,17 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-type FetchStatus = "idle" | "loading" | "success" | "error";
+type FetchStatus = 'idle' | 'loading' | 'success' | 'error';
 
 interface MutationOption<T> {
-  method: RequestInit["method"];
+  method: RequestInit['method'];
   url: string;
   headers?: Record<string, string>;
   onSuccess?: (data: T | null) => void;
@@ -39,11 +33,11 @@ const createUrl = (url: string, params?: Record<string, string>) => {
 
   if (!queryString) return url;
 
-  return `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
+  return `${url}${url.includes('?') ? '&' : '?'}${queryString}`;
 };
 
 export default function useMutation<T>(option: MutationOption<T>) {
-  const [status, setStatus] = useState<FetchStatus>("idle");
+  const [status, setStatus] = useState<FetchStatus>('idle');
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const isMounted = useRef(true);
@@ -58,20 +52,20 @@ export default function useMutation<T>(option: MutationOption<T>) {
   }, []);
 
   const reset = useCallback(() => {
-    setStatus("idle");
+    setStatus('idle');
     setData(null);
     setError(null);
   }, []);
 
   const mutateAsync = useCallback(
     async ({ body, query }: MutateOption = {}) => {
-      setStatus("loading");
+      setStatus('loading');
       setData(null);
       setError(null);
 
       try {
         const res = await fetch(createUrl(url, query), {
-          method: method?.toUpperCase() ?? "POST",
+          method: method?.toUpperCase() ?? 'POST',
           headers,
           body: body !== undefined ? JSON.stringify(body) : undefined,
         });
@@ -87,32 +81,31 @@ export default function useMutation<T>(option: MutationOption<T>) {
         }
 
         if (isMounted.current) {
-          setStatus("success");
+          setStatus('success');
           onSuccess?.(result);
         }
 
         return result;
       } catch (reason) {
-        const err =
-          reason instanceof Error ? reason : new Error(String(reason));
+        const err = reason instanceof Error ? reason : new Error(String(reason));
 
         if (isMounted.current) {
           setError(err);
-          setStatus("error");
+          setStatus('error');
           onError?.(err);
         }
 
         throw err;
       }
     },
-    [method, url, headers, onSuccess, onError]
+    [method, url, headers, onSuccess, onError],
   );
 
   const mutate = useCallback(
     (option: MutateOption = {}) => {
       mutateAsync(option).catch(() => {});
     },
-    [mutateAsync]
+    [mutateAsync],
   );
 
   return { mutate, mutateAsync, status, data, error, reset };

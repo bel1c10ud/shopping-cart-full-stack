@@ -1,10 +1,10 @@
 import { useLocation } from 'react-router';
-import OrderLayout from '../components/OrderLayout';
+import OrderTemplate from '../components/templates/OrderTemplate';
 
 export default function OrderPage() {
   const { state } = useLocation();
 
   // TODO: state 검증
 
-  return <OrderLayout data={state.products} />;
+  return <OrderTemplate data={state.products} />;
 }

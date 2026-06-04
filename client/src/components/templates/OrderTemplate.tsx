@@ -1,15 +1,12 @@
 import { useNavigate } from 'react-router';
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../constants';
-import type { CartItem } from '../types';
+import type { CartItem } from './../../types';
+import useCalculateCartAmount from './../../hooks/useCalculateCartAmount';
+import { formatWon } from './../../utils';
 
-export default function OrderLayout(props: { data: CartItem[] }) {
+export default function OrderTemplate(props: { data: CartItem[] }) {
   const navigate = useNavigate();
 
-  const orderAmount = props.data.reduce((prev, cur) => prev + cur.quantity * cur.product.price, 0);
-
-  const shippingAmount = orderAmount > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-
-  const totalAmount = orderAmount + shippingAmount;
+  const { totalAmount } = useCalculateCartAmount(props.data);
 
   return (
     <div>
@@ -23,7 +20,7 @@ export default function OrderLayout(props: { data: CartItem[] }) {
         최종 결제 금액을 확인해 주세요.
       </p>
       <h2>총 결제 금액</h2>
-      <h1>{totalAmount}원</h1>
+      <h1>{formatWon(totalAmount)}</h1>
       <button disabled>결제하기</button>
     </div>
   );
