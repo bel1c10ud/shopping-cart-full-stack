@@ -1,11 +1,28 @@
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../constants';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import type { CartItem } from '../types';
+import type { CartItem as TCartItem } from '../types';
+import CartItem from './CartItem';
 
-export default function CartLayout({ data }: { data: CartItem[] }) {
+export default function CartLayout({
+  data,
+  onUpdate,
+}: {
+  data: TCartItem[];
+  onUpdate: (updatedItem: TCartItem) => void;
+}) {
   const { storage, setStorage } = useLocalStorage<Record<string, boolean>>(
     'woowacourse-mission-cart',
     Object.fromEntries(data.map((item) => [item.cartItemId, true])),
   );
+
+  const orderAmount = data.reduce((prev, cur) => {
+    if (storage[cur.cartItemId]) return prev + cur.quantity * cur.product.price;
+    return prev;
+  }, 0);
+
+  const shippingAmount = orderAmount > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+
+  const totalAmount = orderAmount + shippingAmount;
 
   const setCartItem = (key: string, checked: boolean) => {
     const newStorage = { ...storage };
@@ -35,29 +52,34 @@ export default function CartLayout({ data }: { data: CartItem[] }) {
       </div>
       <ul>
         {data.map((item) => (
-          <li key={item.cartItemId}>
-            <div>
-              <input
-                type="checkbox"
-                checked={storage[item.cartItemId]}
-                onChange={(e) => setCartItem(item.cartItemId, e.target.checked)}
-              />
-              <button>삭제</button>
-            </div>
-            <div>
-              <img src={item.product.image} />
-              <div>
-                <div>{item.product.name}</div>
-                <div>{item.product.price}</div>
-                <div>
-                  <button>-</button>
-                  <div>{item.quantity}</div>
-                  <button>+</button>
-                </div>
-              </div>
-            </div>
-          </li>
+          <CartItem
+            key={item.cartItemId}
+            data={item}
+            isChecked={storage[item.cartItemId]}
+            onChange={(e) => setCartItem(item.cartItemId, e.target.checked)}
+            onUpdate={onUpdate}
+          />
         ))}
+      </ul>
+      <ul>
+        <li>
+          <div>주문 금액</div>
+          <div aria-label="주문 금액" data-value={orderAmount}>
+            {orderAmount}
+          </div>
+        </li>
+        <li>
+          <div>배송비</div>
+          <div aria-label="배송비" data-value={shippingAmount}>
+            {shippingAmount}
+          </div>
+        </li>
+        <li>
+          <div>총 결제 금액</div>
+          <div aria-label="총 결제 금액" data-value={totalAmount}>
+            {totalAmount}
+          </div>
+        </li>
       </ul>
     </div>
   );

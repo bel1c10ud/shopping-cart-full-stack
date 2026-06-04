@@ -45,7 +45,6 @@ export default function useQuery<T>(option: QueryOption) {
       const hasBody = method !== 'GET' && body !== undefined;
 
       setStatus('loading');
-      setData(null);
       setError(null);
 
       try {
@@ -98,6 +97,7 @@ export default function useQuery<T>(option: QueryOption) {
   return {
     status,
     data,
+    setData,
     error,
     refetch,
   };
