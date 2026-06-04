@@ -1,9 +1,12 @@
+import { useNavigate } from 'react-router';
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../constants';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import type { CartItem as TCartItem } from '../types';
 import CartItem from './CartItem';
 
 export default function CartLayout({ data, refetchData }: { data: TCartItem[]; refetchData: () => void }) {
+  const navigate = useNavigate();
+
   const { storage, setStorage } = useLocalStorage<Record<string, boolean>>(
     'woowacourse-mission-cart',
     Object.fromEntries(data.map((item) => [item.cartItemId, true])),
@@ -80,6 +83,16 @@ export default function CartLayout({ data, refetchData }: { data: TCartItem[]; r
           </div>
         </li>
       </ul>
+      <button
+        onClick={() =>
+          navigate('/order', {
+            state: { products: data.filter((cur) => storage[cur.cartItemId]) },
+          })
+        }
+        disabled={!Object.entries(storage).some((el) => el[1])}
+      >
+        주문 확인
+      </button>
     </div>
   );
 }

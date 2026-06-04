@@ -50,7 +50,14 @@ describe('CartPage', () => {
       }),
     );
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await waitFor(() => {
       expect(requestCart).toHaveBeenCalled();
@@ -67,7 +74,14 @@ describe('CartPage', () => {
       }),
     );
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     expect(await screen.findByText('상품이름A')).toBeInTheDocument();
     expect(screen.getByText('상품이름B')).toBeInTheDocument();
@@ -93,7 +107,14 @@ describe('CartPage', () => {
 
     localStorage.clear();
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -116,7 +137,14 @@ describe('CartPage', () => {
       }),
     );
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     expect(await screen.findByText('장바구니에 담은 상품이 없습니다.')).toBeInTheDocument();
   });
@@ -133,7 +161,14 @@ describe('CartPage', () => {
 
     localStorage.clear();
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -168,7 +203,14 @@ describe('CartPage', () => {
 
     localStorage.clear();
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -208,7 +250,14 @@ describe('CartPage', () => {
 
     localStorage.clear();
 
-    const { unmount } = render(<CartPage />);
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -221,7 +270,14 @@ describe('CartPage', () => {
 
     // 2. 언마운트 후 다시 렌더링(새로고침 상황 모사)
     unmount();
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -247,7 +303,14 @@ describe('CartPage', () => {
 
     localStorage.clear();
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -276,7 +339,14 @@ describe('CartPage', () => {
 
     localStorage.clear();
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -319,7 +389,14 @@ describe('CartPage', () => {
 
     localStorage.clear();
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -377,7 +454,14 @@ describe('CartPage', () => {
       }),
     );
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -401,7 +485,14 @@ describe('CartPage', () => {
       }),
     );
 
-    const { unmount } = render(<CartPage />);
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
     await screen.findByText('상품이름A');
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
@@ -413,7 +504,14 @@ describe('CartPage', () => {
 
     mockCartItems[0].quantity = 99;
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
@@ -446,7 +544,14 @@ describe('CartPage', () => {
       }),
     );
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
     await screen.findByText('상품이름A');
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
@@ -477,7 +582,14 @@ describe('CartPage', () => {
 
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
     await screen.findByText('상품이름A');
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
@@ -515,7 +627,14 @@ describe('CartPage', () => {
       }),
     );
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
     await screen.findByText('상품이름A');
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
@@ -549,7 +668,14 @@ describe('CartPage', () => {
       }),
     );
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
     await screen.findByText('상품이름A');
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
@@ -586,7 +712,14 @@ describe('CartPage', () => {
     localStorage.clear();
     localStorage.setItem('woowacourse-mission-cart', JSON.stringify({ '1': true, '2': true }));
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
     await screen.findByText('상품이름A');
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
@@ -621,7 +754,14 @@ describe('CartPage', () => {
 
     const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
     await screen.findByText('상품이름A');
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
@@ -648,7 +788,14 @@ describe('CartPage', () => {
 
     localStorage.clear();
 
-    render(<CartPage />);
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     await screen.findByText('상품이름A');
 
