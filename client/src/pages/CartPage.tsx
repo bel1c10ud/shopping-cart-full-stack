@@ -6,21 +6,12 @@ import useQuery from '../hooks/useQuery';
 import type { APIResponse, CartItem } from '../types';
 
 export default function CartPage() {
-  const { status, data, setData } = useQuery<APIResponse<CartItem[]>>({
+  const { status, data, refetch } = useQuery<APIResponse<CartItem[]>>({
     url: `${import.meta.env.VITE_API_URL}/cart`,
   });
 
-  const handleCartItemUpdate = (updatedItem: CartItem) => {
-    if (data?.status === 'success') {
-      setData({
-        ...data,
-        data: data.data.map((item) => (item.cartItemId === updatedItem.cartItemId ? updatedItem : item)),
-      });
-    }
-  };
-
   if (status === 'loading' || !data) return <CartSkeleton />;
   if (data && data.status === 'success' && data.data.length === 0) return <CartEmpty />;
-  if (data && data.status === 'success') return <CartLayout data={data.data} onUpdate={handleCartItemUpdate} />;
+  if (data && data.status === 'success') return <CartLayout data={data.data} refetchData={refetch} />;
   return <CartError />;
 }

@@ -3,17 +3,13 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import type { CartItem as TCartItem } from '../types';
 import CartItem from './CartItem';
 
-export default function CartLayout({
-  data,
-  onUpdate,
-}: {
-  data: TCartItem[];
-  onUpdate: (updatedItem: TCartItem) => void;
-}) {
+export default function CartLayout({ data, refetchData }: { data: TCartItem[]; refetchData: () => void }) {
   const { storage, setStorage } = useLocalStorage<Record<string, boolean>>(
     'woowacourse-mission-cart',
     Object.fromEntries(data.map((item) => [item.cartItemId, true])),
   );
+
+  // TODO: 추가된 상품에 대한 로컬 스토리지 상태 동기화 필요
 
   const orderAmount = data.reduce((prev, cur) => {
     if (storage[cur.cartItemId]) return prev + cur.quantity * cur.product.price;
@@ -57,7 +53,10 @@ export default function CartLayout({
             data={item}
             isChecked={storage[item.cartItemId]}
             onChange={(e) => setCartItem(item.cartItemId, e.target.checked)}
-            onUpdate={onUpdate}
+            storage={storage}
+            setStorage={setStorage}
+            onUpdate={refetchData}
+            onDelete={refetchData}
           />
         ))}
       </ul>

@@ -508,7 +508,7 @@ describe('CartPage', () => {
 
         return HttpResponse.json({
           status: 'success',
-          data: cartItemId,
+          data: { cartItemId },
         });
       }),
     );
@@ -572,9 +572,11 @@ describe('CartPage', () => {
 
     server.use(
       http.delete(`${import.meta.env.VITE_API_URL}/cart/:cartItemId`, ({ params }) => {
+        const { cartItemId } = params;
+        mockCartItems = mockCartItems.filter((item) => item.cartItemId !== cartItemId);
         return HttpResponse.json({
           status: 'success',
-          data: params.cartItemId,
+          data: { cartItemId },
         });
       }),
     );

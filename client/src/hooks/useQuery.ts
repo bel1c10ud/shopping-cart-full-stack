@@ -97,7 +97,6 @@ export default function useQuery<T>(option: QueryOption) {
   return {
     status,
     data,
-    setData,
     error,
     refetch,
   };

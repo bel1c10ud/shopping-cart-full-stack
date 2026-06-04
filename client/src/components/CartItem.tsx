@@ -5,8 +5,11 @@ import useMutation from '../hooks/useMutation';
 export default function CartItem(props: {
   data: CartItem;
   isChecked: boolean;
+  storage: Record<string, boolean>;
+  setStorage: (value: Record<string, boolean>) => void;
   onChange: ChangeEventHandler<HTMLInputElement>;
-  onUpdate: (updatedItem: CartItem) => void;
+  onUpdate: () => void;
+  onDelete: () => void;
 }) {
   const { status, mutate } = useMutation<APIResponse<CartItem>>({
     url: `${import.meta.env.VITE_API_URL}/cart/${props.data.cartItemId}`,
@@ -16,7 +19,7 @@ export default function CartItem(props: {
     },
     onSuccess: (response) => {
       if (response && response.status === 'success') {
-        props.onUpdate(response.data);
+        props.onUpdate();
       }
     },
     onError: () => {
@@ -24,11 +27,31 @@ export default function CartItem(props: {
     },
   });
 
+  const deleteMutation = useMutation<APIResponse<CartItem>>({
+    url: `${import.meta.env.VITE_API_URL}/cart/${props.data.cartItemId}`,
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    onSuccess: (response) => {
+      if (response && response.status === 'success') {
+        console.log(response);
+        const newStorage = { ...props.storage };
+        delete newStorage[response.data.cartItemId];
+        props.setStorage(newStorage);
+        props.onDelete();
+      }
+    },
+    onError: () => {
+      alert('장바구니 삭제에 실패했습니다.');
+    },
+  });
+
   return (
     <li>
       <div>
         <input type="checkbox" checked={props.isChecked} onChange={props.onChange} />
-        <button>삭제</button>
+        <button onClick={() => deleteMutation.mutate()}>삭제</button>
       </div>
       <div>
         <img src={props.data.product.image} />
