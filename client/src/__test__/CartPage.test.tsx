@@ -3,6 +3,8 @@ import { http, HttpResponse } from 'msw';
 import CartPage from '../pages/CartPage';
 import { server } from '../mocks/server';
 import type { CartItem } from '../types';
+import { MemoryRouter, Route, Routes } from 'react-router';
+import OrderPage from '../pages/OrderPage';
 
 describe('CartPage', () => {
   let mockCartItems: CartItem[];
@@ -632,5 +634,105 @@ describe('CartPage', () => {
     });
 
     alertMock.mockRestore();
+  });
+
+  it('선택된 상품이 있으면 주문 확인 버튼을 활성화하고 없으면 비활성화한다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    localStorage.clear();
+
+    render(<CartPage />);
+
+    await screen.findByText('상품이름A');
+
+    const checkoutButton = screen.getByRole('button', { name: '주문 확인' });
+    expect(checkoutButton).toBeEnabled();
+
+    // 전체 선택 해제 시 비활성화
+    const selectAllCheckbox = screen.getAllByRole('checkbox')[0];
+    fireEvent.click(selectAllCheckbox);
+    expect(checkoutButton).toBeDisabled();
+
+    // 개별 상품 하나 다시 선택 시 활성화
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const checkboxA = within(itemA).getByRole('checkbox');
+    fireEvent.click(checkboxA);
+    expect(checkoutButton).toBeEnabled();
+  });
+
+  it('주문 확인 버튼을 누르면 주문 확인 페이지로 이동하고 관련 내용(종류 수, 총수량, 총 결제 금액, 결제하기 버튼)을 표시한다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    localStorage.clear();
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('상품이름A');
+
+    const checkoutButton = screen.getByRole('button', { name: '주문 확인' });
+    fireEvent.click(checkoutButton);
+
+    // 주문할 상품 종류 수 (2종류)와 총수량 (3개) 표시 검증
+    expect(await screen.findByText(/2종류/)).toBeInTheDocument();
+    expect(screen.getByText(/3개/)).toBeInTheDocument();
+
+    // 배송비를 포함한 총 결제 금액 표시 검증 (95,000 + 3,000 = 98,000)
+    expect(screen.getByText(/98,?000원?/)).toBeInTheDocument();
+
+    // 결제하기 버튼 표시 검증
+    expect(screen.getByRole('button', { name: '결제하기' })).toBeInTheDocument();
+  });
+
+  it('주문 확인 페이지에서 뒤로가기 버튼을 누르면 장바구니 페이지로 이동한다', async () => {
+    server.use(
+      http.get(`${import.meta.env.VITE_API_URL}/cart`, () => {
+        return HttpResponse.json({
+          status: 'success',
+          data: mockCartItems,
+        });
+      }),
+    );
+
+    localStorage.clear();
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order" element={<OrderPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('상품이름A');
+
+    const checkoutButton = screen.getByRole('button', { name: '주문 확인' });
+    fireEvent.click(checkoutButton);
+
+    const backButton = await screen.findByRole('button', { name: '뒤로가기' });
+    fireEvent.click(backButton);
+
+    expect(await screen.findByText('상품이름A')).toBeInTheDocument();
   });
 });
