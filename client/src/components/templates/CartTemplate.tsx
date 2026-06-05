@@ -96,16 +96,19 @@ export default function CartTemplate(props: { data: TCartItem[]; refetchData: ()
           py={10}
         />
       </List>
-      <Button
-        onClick={() =>
-          navigate('/order', {
-            state: { products: props.data.filter((cur) => selectedById[cur.cartItemId]) },
-          })
-        }
-        disabled={!Object.entries(selectedById).some((el) => el[1])}
-      >
-        주문 확인
-      </Button>
+      <View.CTA>
+        <Button
+          variant="cta"
+          onClick={() =>
+            navigate('/order', {
+              state: { products: props.data.filter((cur) => selectedById[cur.cartItemId]) },
+            })
+          }
+          disabled={!Object.entries(selectedById).some((el) => el[1])}
+        >
+          주문 확인
+        </Button>
+      </View.CTA>
     </View>
   );
 }

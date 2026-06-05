@@ -29,7 +29,11 @@ export default function OrderTemplate(props: { data: CartItem[] }) {
           </Typo>
         </Flex>
       </Flex>
-      <Button disabled>결제하기</Button>
+      <View.CTA>
+        <Button variant="cta" disabled>
+          결제하기
+        </Button>
+      </View.CTA>
     </View>
   );
 }
