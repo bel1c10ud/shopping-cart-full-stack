@@ -1,15 +1,12 @@
 import type { APIResponse, CartItem } from '../../types';
-import useMutation from '../useMutation';
+import useMutation from './useMutation';
 
 interface UseUpdateCartItemMutationOption {
   cartItemId: CartItem['cartItemId'];
   onSuccess: () => void;
 }
 
-export default function useUpdateCartItemMutation({
-  cartItemId,
-  onSuccess,
-}: UseUpdateCartItemMutationOption) {
+export default function useUpdateCartItemMutation({ cartItemId, onSuccess }: UseUpdateCartItemMutationOption) {
   return useMutation<APIResponse<CartItem>>({
     url: `${import.meta.env.VITE_API_URL}/cart/${cartItemId}`,
     method: 'PATCH',
