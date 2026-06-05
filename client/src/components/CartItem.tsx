@@ -1,5 +1,4 @@
-import type { APIResponse, CartItem } from '../types';
-import useMutation from '../hooks/useMutation';
+import type { CartItem } from '../types';
 import type { ChangeEvent } from 'react';
 import { formatWon } from '../utils';
 import Flex from './common/Flex';
@@ -9,6 +8,8 @@ import { css } from '@emotion/css';
 import CheckBox from './common/CheckBox';
 import List from './common/List';
 import Image from './common/Image';
+import useUpdateCartItemMutation from '../hooks/mutations/useUpdateCartItemMutation';
+import useDeleteCartItemMutation from '../hooks/mutations/useDeleteCartItemMutation';
 
 export default function CartItem(props: {
   data: CartItem;
@@ -17,36 +18,14 @@ export default function CartItem(props: {
   onUpdate: () => void;
   onDelete: () => void;
 }) {
-  const updateMutation = useMutation<APIResponse<CartItem>>({
-    url: `${import.meta.env.VITE_API_URL}/cart/${props.data.cartItemId}`,
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    onSuccess: (response) => {
-      if (response && response.status === 'success') {
-        props.onUpdate();
-      }
-    },
-    onError: () => {
-      alert('장바구니 수량 변경에 실패했습니다.');
-    },
+  const updateCartItemMutation = useUpdateCartItemMutation({
+    cartItemId: props.data.cartItemId,
+    onSuccess: props.onUpdate,
   });
 
-  const deleteMutation = useMutation<APIResponse<CartItem>>({
-    url: `${import.meta.env.VITE_API_URL}/cart/${props.data.cartItemId}`,
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    onSuccess: (response) => {
-      if (response && response.status === 'success') {
-        props.onDelete();
-      }
-    },
-    onError: () => {
-      alert('장바구니 삭제에 실패했습니다.');
-    },
+  const deleteCartItemMutation = useDeleteCartItemMutation({
+    cartItemId: props.data.cartItemId,
+    onSuccess: props.onDelete,
   });
 
   const handleChangeChecked = (e: ChangeEvent<HTMLInputElement>) => props.onSelect(e.target.checked);
@@ -58,7 +37,7 @@ export default function CartItem(props: {
       header={
         <Flex justifyContent="space-between">
           <CheckBox checked={props.checked} onChange={handleChangeChecked} />
-          <Button size="s" onClick={() => deleteMutation.mutate()}>
+          <Button size="s" onClick={() => deleteCartItemMutation.mutate()}>
             삭제
           </Button>
         </Flex>
@@ -77,12 +56,8 @@ export default function CartItem(props: {
             <Flex alignItems="center" gap={8}>
               <Button
                 size="s"
-                onClick={() =>
-                  updateMutation.mutate({
-                    body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity - 1 },
-                  })
-                }
-                disabled={updateMutation.status === 'loading' || props.data.quantity <= 1}
+                onClick={() => updateCartItemMutation.mutate({ body: { quantity: props.data.quantity - 1 } })}
+                disabled={updateCartItemMutation.status === 'loading' || props.data.quantity <= 1}
               >
                 -
               </Button>
@@ -91,12 +66,8 @@ export default function CartItem(props: {
               </Typo>
               <Button
                 size="s"
-                onClick={() =>
-                  updateMutation.mutate({
-                    body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity + 1 },
-                  })
-                }
-                disabled={updateMutation.status === 'loading' || props.data.quantity >= 99}
+                onClick={() => updateCartItemMutation.mutate({ body: { quantity: props.data.quantity + 1 } })}
+                disabled={updateCartItemMutation.status === 'loading' || props.data.quantity >= 99}
               >
                 +
               </Button>
