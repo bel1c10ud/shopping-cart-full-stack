@@ -41,7 +41,7 @@ export default function CartTemplate(props: { data: TCartItem[]; refetchData: ()
             <CheckBox
               id="check-all"
               checked={!Object.entries(selectedById).some((el) => !el[1])}
-              onChange={(e) => setAllSelected(e.target.checked)}
+              onChange={setAllSelected}
             />
             <Typo as="label" size="s" htmlFor="check-all">
               전체선택

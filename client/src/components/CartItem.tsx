@@ -1,5 +1,4 @@
 import type { CartItem } from '../types';
-import type { ChangeEvent } from 'react';
 import { formatWon } from '../utils';
 import Flex from './common/Flex';
 import Typo from './common/Typo';
@@ -28,15 +27,13 @@ export default function CartItem(props: {
     onSuccess: props.onDelete,
   });
 
-  const handleChangeChecked = (e: ChangeEvent<HTMLInputElement>) => props.onSelect(e.target.checked);
-
   return (
     <List.Item
       direction="column"
       gap={8}
       header={
         <Flex justifyContent="space-between">
-          <CheckBox checked={props.checked} onChange={handleChangeChecked} />
+          <CheckBox checked={props.checked} onChange={props.onSelect} />
           <Button size="s" onClick={() => deleteCartItemMutation.mutate()}>
             삭제
           </Button>

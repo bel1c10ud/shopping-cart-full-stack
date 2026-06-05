@@ -3,12 +3,17 @@ import React from 'react';
 import { css, cx } from '@emotion/css';
 import { spacingStyle, splitSpacingProps, type SpacingStyleProps } from './styleProps';
 
-export default function CheckBox({ className, ...props }: Omit<ComponentProps<'input'>, 'type'> & SpacingStyleProps) {
+interface CheckBoxProps extends Omit<ComponentProps<'input'>, 'type' | 'onChange'>, SpacingStyleProps {
+  onChange?: (checked: boolean) => void;
+}
+
+export default function CheckBox({ className, onChange, ...props }: CheckBoxProps) {
   const { spacingProps, restProps } = splitSpacingProps(props);
   return React.createElement('input', {
     ...restProps,
     type: 'checkbox',
     className: cx(checkBoxStyle, spacingStyle(spacingProps), className),
+    onChange: (event) => onChange?.(event.target.checked),
   });
 }
 
