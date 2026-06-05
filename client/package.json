@@ -11,8 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "prepare": "husky",
-    "sync-token": "node --experimental-strip-types sync-token.ts"
+    "sync-token": "node --experimental-strip-types sync-token.ts",
+    "deploy": "vite build --mode gh-pages --minify=false && npx gh-pages -d dist"
   },
+  "homepage": "https://bel1c10ud.github.io/shopping-cart-full-stack",
   "dependencies": {
     "@emotion/css": "^11.13.5",
     "react": "^19.2.6",
