@@ -29,15 +29,14 @@ export const updateCartQuantityHandler = (
 
     onRequest?.(cartItemId);
 
-    const updatedCartItems = cartItems.map((item) =>
-      item.cartItemId === cartItemId ? { ...item, quantity: body.quantity } : item,
-    );
+    const item = cartItems.find((i) => i.cartItemId === cartItemId);
+    if (item) {
+      item.quantity = body.quantity;
+    }
 
-    onChange?.(updatedCartItems);
+    onChange?.(cartItems);
 
-    const updatedItem = updatedCartItems.find((item) => item.cartItemId === cartItemId);
-
-    return cartResponse(updatedItem);
+    return cartResponse(item);
   });
 };
 
@@ -57,7 +56,12 @@ export const deleteCartItemHandler = (
 
     onRequest?.(cartItemId);
 
-    onChange?.(cartItems.filter((item) => item.cartItemId !== cartItemId));
+    const index = cartItems.findIndex((i) => i.cartItemId === cartItemId);
+    if (index !== -1) {
+      cartItems.splice(index, 1);
+    }
+
+    onChange?.(cartItems);
 
     return cartResponse({ cartItemId });
   });
