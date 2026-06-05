@@ -3,7 +3,6 @@ import { formatWon } from '../utils';
 import Flex from './common/Flex';
 import Typo from './common/Typo';
 import Button from './common/Button';
-import { css } from '@emotion/css';
 import CheckBox from './common/CheckBox';
 import List from './common/List';
 import Image from './common/Image';
@@ -42,7 +41,7 @@ export default function CartItem(props: {
       py={16}
       content={
         <Flex alignItems="center" gap={24}>
-          <Image className={imageStyle} src={props.data.product.image} alt={props.data.product.name} />
+          <Image width={112} height={112} radius="l" src={props.data.product.image} alt={props.data.product.name} />
           <Flex direction="column" gap={8}>
             <Flex direction="column">
               <Typo size="s">{props.data.product.name}</Typo>
@@ -75,9 +74,3 @@ export default function CartItem(props: {
     />
   );
 }
-
-const imageStyle = css`
-  width: 112px;
-  height: 112px;
-  border-radius: var(--radius-l);
-`;

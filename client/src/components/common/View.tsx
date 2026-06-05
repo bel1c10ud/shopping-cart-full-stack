@@ -72,7 +72,7 @@ function Header() {
   return (
     <Flex as="header" className={headerStyle} p={24} flexGrow={0} flexShrink={0}>
       {location.pathname === '/' ? (
-        <Image className={logoStyle} src={`${import.meta.env.BASE_URL}logo.svg`} alt="shopping cart" />
+        <Image height={16} src={`${import.meta.env.BASE_URL}logo.svg`} alt="shopping cart" />
       ) : (
         <Link to="/" aria-label="뒤로가기">
           <Image src={`${import.meta.env.BASE_URL}back.svg`} alt="뒤로가기" />
@@ -86,8 +86,4 @@ const headerStyle = css`
   width: 100%;
   height: 64px;
   background-color: var(--color-black);
-`;
-
-const logoStyle = css`
-  height: 16px;
 `;
