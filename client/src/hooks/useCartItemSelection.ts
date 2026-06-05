@@ -4,6 +4,13 @@ import { useLocalStorage } from './useLocalStorage';
 
 export const CART_SELECT_LOCAL_STORAGE_KEY = 'woowacourse-mission-cart-select';
 
+const isSameSelection = (a: Record<string, boolean>, b: Record<string, boolean>) => {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return aKeys.length === bKeys.length && aKeys.every((key) => a[key] === b[key]);
+};
+
 export default function useCartItemSelection(cartItems?: CartItem[]) {
   const { storage: selectedById, setStorage } = useLocalStorage<Record<string, boolean>>(
     CART_SELECT_LOCAL_STORAGE_KEY,
@@ -11,32 +18,29 @@ export default function useCartItemSelection(cartItems?: CartItem[]) {
   );
 
   const setSelected = useCallback(
-    (cartItemId: CartItem['cartItemId'], value: boolean) => {
-      setStorage((prev) => {
-        const newStorage = { ...prev };
-        newStorage[cartItemId] = value;
-        return newStorage;
-      });
+    (cartItemId: string, checked: boolean) => {
+      setStorage((prev) => ({ ...prev, [cartItemId]: checked }));
     },
     [setStorage],
   );
 
   const setAllSelected = useCallback(
     (value: boolean) => {
-      setStorage((prev) => {
-        const newStorage = { ...prev };
-        Object.keys(newStorage).forEach((key) => (newStorage[key] = value));
-        return newStorage;
-      });
+      if (cartItems === undefined) return;
+      setStorage(Object.fromEntries(cartItems.map((item) => [item.cartItemId, value])));
     },
-    [setStorage],
+    [cartItems, setStorage],
   );
 
   useEffect(() => {
-    if (cartItems !== undefined)
-      setStorage(
-        Object.fromEntries(cartItems.map((item) => [item.cartItemId, selectedById?.[item.cartItemId] ?? true])),
+    if (cartItems !== undefined) {
+      const nextSelectedById = Object.fromEntries(
+        cartItems.map((item) => [item.cartItemId, selectedById?.[item.cartItemId] ?? true]),
       );
+      if (!isSameSelection(selectedById, nextSelectedById)) {
+        setStorage(nextSelectedById);
+      }
+    }
   }, [cartItems, setStorage, selectedById]);
 
   return { selectedById, setSelected, setAllSelected };
