@@ -11905,6 +11905,11 @@ var FONT_COLOR = {
 	black: "var(--color-black)",
 	white: "var(--color-white)"
 };
+var RADIUS = {
+	s: "var(--radius-s)",
+	m: "var(--radius-m)",
+	l: "var(--radius-l)"
+};
 var BUTTON_SIZE = {
 	s: {
 		height: "var(--button-size-s-height)",
@@ -13157,15 +13162,22 @@ var typoStyle = (props) => css`
 `;
 //#endregion
 //#region src/components/common/Image.tsx
-function Image({ className, ...props }) {
+function Image({ className, width, height, radius, ...props }) {
 	const { spacingProps, restProps } = splitSpacingProps(props);
 	return import_react.createElement("img", {
 		...restProps,
-		className: cx(imageStyle$1, spacingStyle(spacingProps), className)
+		className: cx(imageStyle({
+			width,
+			height,
+			radius
+		}), spacingStyle(spacingProps), className)
 	});
 }
-var imageStyle$1 = css`
+var imageStyle = (props) => css`
   display: block;
+  ${props.width ? `width: ${props.width}px;` : ""}
+  ${props.height ? `height: ${props.height}px;` : ""}
+  ${props.radius ? `border-radius: ${RADIUS[props.radius]};` : ""}
 `;
 //#endregion
 //#region node_modules/react/cjs/react-jsx-runtime.production.js
@@ -13268,7 +13280,7 @@ function Header() {
 		flexGrow: 0,
 		flexShrink: 0,
 		children: useLocation().pathname === "/" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Image, {
-			className: logoStyle,
+			height: 16,
 			src: `/shopping-cart-full-stack/logo.svg`,
 			alt: "shopping cart"
 		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
@@ -13285,9 +13297,6 @@ var headerStyle = css`
   width: 100%;
   height: 64px;
   background-color: var(--color-black);
-`;
-var logoStyle = css`
-  height: 16px;
 `;
 //#endregion
 //#region src/components/templates/CartEmptyTemplate.tsx
@@ -13326,8 +13335,75 @@ function CartErrorTemplate() {
 	})] });
 }
 //#endregion
-//#region src/utils.ts
-var formatWon = (amount) => `${amount.toLocaleString()}원`;
+//#region src/hooks/useLocalStorage.ts
+function useLocalStorage(key, fallback) {
+	const snapshot = (0, import_react.useSyncExternalStore)((0, import_react.useCallback)((callback) => {
+		window.addEventListener("storage", callback);
+		window.addEventListener("local-storage-change", callback);
+		return () => {
+			window.removeEventListener("storage", callback);
+			window.removeEventListener("local-storage-change", callback);
+		};
+	}, []), (0, import_react.useCallback)(() => {
+		return window.localStorage.getItem(key);
+	}, [key]));
+	const storage = (0, import_react.useMemo)(() => {
+		if (snapshot === null) return fallback;
+		try {
+			return JSON.parse(snapshot);
+		} catch {
+			return fallback;
+		}
+	}, [fallback, snapshot]);
+	return {
+		storage,
+		setStorage: (0, import_react.useCallback)((value) => {
+			const nextValue = typeof value === "function" ? value(storage) : value;
+			const nextSnapshot = JSON.stringify(nextValue);
+			window.localStorage.setItem(key, nextSnapshot);
+			window.dispatchEvent(new CustomEvent("local-storage-change", { detail: {
+				key,
+				newValue: nextSnapshot
+			} }));
+		}, [key, storage])
+	};
+}
+//#endregion
+//#region src/hooks/useCartItemSelection.ts
+var CART_SELECT_LOCAL_STORAGE_KEY = "woowacourse-mission-cart-select";
+var isSameSelection = (a, b) => {
+	const aKeys = Object.keys(a);
+	const bKeys = Object.keys(b);
+	return aKeys.length === bKeys.length && aKeys.every((key) => a[key] === b[key]);
+};
+function useCartItemSelection(cartItems) {
+	const { storage: selectedById, setStorage } = useLocalStorage(CART_SELECT_LOCAL_STORAGE_KEY, {});
+	const setSelected = (0, import_react.useCallback)((cartItemId, checked) => {
+		setStorage((prev) => ({
+			...prev,
+			[cartItemId]: checked
+		}));
+	}, [setStorage]);
+	const setAllSelected = (0, import_react.useCallback)((value) => {
+		if (cartItems === void 0) return;
+		setStorage(Object.fromEntries(cartItems.map((item) => [item.cartItemId, value])));
+	}, [cartItems, setStorage]);
+	(0, import_react.useEffect)(() => {
+		if (cartItems !== void 0) {
+			const nextSelectedById = Object.fromEntries(cartItems.map((item) => [item.cartItemId, selectedById?.[item.cartItemId] ?? true]));
+			if (!isSameSelection(selectedById, nextSelectedById)) setStorage(nextSelectedById);
+		}
+	}, [
+		cartItems,
+		setStorage,
+		selectedById
+	]);
+	return {
+		selectedById,
+		setSelected,
+		setAllSelected
+	};
+}
 //#endregion
 //#region src/components/common/Button.tsx
 var variants = {
@@ -13370,6 +13446,9 @@ var buttonStyle = (size) => css`
   height: ${BUTTON_SIZE[size].height};
   padding: 0 ${BUTTON_SIZE[size].paddingX};
 `;
+//#endregion
+//#region src/utils.ts
+var formatWon = (amount) => `${amount.toLocaleString()}원`;
 //#endregion
 //#region src/components/common/CheckBox.tsx
 function CheckBox({ className, onChange, ...props }) {
@@ -13608,7 +13687,9 @@ function CartItem(props) {
 			alignItems: "center",
 			gap: 24,
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Image, {
-				className: imageStyle,
+				width: 112,
+				height: 112,
+				radius: "l",
 				src: props.data.product.image,
 				alt: props.data.product.name
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
@@ -13651,76 +13732,37 @@ function CartItem(props) {
 		})
 	});
 }
-var imageStyle = css`
-  width: 112px;
-  height: 112px;
-  border-radius: var(--radius-l);
-`;
 //#endregion
-//#region src/hooks/useLocalStorage.ts
-function useLocalStorage(key, fallback) {
-	const snapshot = (0, import_react.useSyncExternalStore)((0, import_react.useCallback)((callback) => {
-		window.addEventListener("storage", callback);
-		window.addEventListener("local-storage-change", callback);
-		return () => {
-			window.removeEventListener("storage", callback);
-			window.removeEventListener("local-storage-change", callback);
-		};
-	}, []), (0, import_react.useCallback)(() => {
-		return window.localStorage.getItem(key);
-	}, [key]));
-	const storage = (0, import_react.useMemo)(() => {
-		if (snapshot === null) return fallback;
-		try {
-			return JSON.parse(snapshot);
-		} catch {
-			return fallback;
-		}
-	}, [fallback, snapshot]);
-	return {
-		storage,
-		setStorage: (0, import_react.useCallback)((value) => {
-			const nextValue = typeof value === "function" ? value(storage) : value;
-			const nextSnapshot = JSON.stringify(nextValue);
-			window.localStorage.setItem(key, nextSnapshot);
-			window.dispatchEvent(new CustomEvent("local-storage-change", { detail: {
-				key,
-				newValue: nextSnapshot
-			} }));
-		}, [key, storage])
-	};
-}
-//#endregion
-//#region src/hooks/useCartItemSelection.ts
-var CART_SELECT_LOCAL_STORAGE_KEY = "woowacourse-mission-cart-select";
-function useCartItemSelection(cartItems) {
-	const { storage: selectedById, setStorage } = useLocalStorage(CART_SELECT_LOCAL_STORAGE_KEY, {});
-	const setSelected = (0, import_react.useCallback)((cartItemId, value) => {
-		setStorage((prev) => {
-			const newStorage = { ...prev };
-			newStorage[cartItemId] = value;
-			return newStorage;
-		});
-	}, [setStorage]);
-	const setAllSelected = (0, import_react.useCallback)((value) => {
-		setStorage((prev) => {
-			const newStorage = { ...prev };
-			Object.keys(newStorage).forEach((key) => newStorage[key] = value);
-			return newStorage;
-		});
-	}, [setStorage]);
-	(0, import_react.useEffect)(() => {
-		if (cartItems !== void 0) setStorage(Object.fromEntries(cartItems.map((item) => [item.cartItemId, selectedById?.[item.cartItemId] ?? true])));
-	}, [
-		cartItems,
-		setStorage,
-		selectedById
-	]);
-	return {
-		selectedById,
-		setSelected,
-		setAllSelected
-	};
+//#region src/components/CartItemList.tsx
+function CartItemList(props) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List, {
+		divider: {
+			header: true,
+			item: true
+		},
+		header: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
+			alignItems: "center",
+			gap: 8,
+			py: 16,
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CheckBox, {
+				id: "check-all",
+				checked: !Object.entries(props.selectedById).some((el) => !el[1]),
+				onChange: props.onSelectAll
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
+				as: "label",
+				size: "s",
+				htmlFor: "check-all",
+				children: "전체선택"
+			})]
+		}),
+		children: props.data.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartItem, {
+			data: item,
+			checked: props.selectedById[item.cartItemId],
+			onSelect: (checked) => props.onSelect(item.cartItemId, checked),
+			onUpdate: props.refetchData,
+			onDelete: props.refetchData
+		}, item.cartItemId))
+	});
 }
 //#endregion
 //#region src/hooks/useCalculateCartAmount.ts
@@ -13741,13 +13783,80 @@ function useCalculateCartAmount(cartItems) {
 	};
 }
 //#endregion
+//#region src/components/CartAmountSummary.tsx
+function CartAmountSummary(props) {
+	const { orderAmount, shippingAmount, totalAmount } = useCalculateCartAmount(props.selectedCartItems);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(List, {
+		divider: {
+			header: true,
+			footer: true
+		},
+		header: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
+			gap: 4,
+			py: 10,
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Image, {
+				src: `/shopping-cart-full-stack/infomation.svg`,
+				alt: "infomation icon"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Typo, {
+				size: "s",
+				children: [
+					"총 주문 금액이 ",
+					formatWon(1e5),
+					" 이상일 경우 무료 배송됩니다"
+				]
+			})]
+		}),
+		footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
+			justifyContent: "space-between",
+			py: 10,
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
+				weight: "bold",
+				children: "총 결제 금액"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
+				weight: "bold",
+				size: "l",
+				"aria-label": "총 결제 금액",
+				"data-value": totalAmount,
+				children: formatWon(totalAmount)
+			})]
+		}),
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Item, {
+			left: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
+				weight: "bold",
+				children: "주문 금액"
+			}),
+			content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
+				weight: "bold",
+				size: "l",
+				"aria-label": "주문 금액",
+				"data-value": orderAmount,
+				children: formatWon(orderAmount)
+			}),
+			py: 10
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Item, {
+			left: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
+				weight: "bold",
+				children: "배송비"
+			}),
+			content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
+				weight: "bold",
+				size: "l",
+				"aria-label": "배송비",
+				"data-value": shippingAmount,
+				children: formatWon(shippingAmount)
+			}),
+			py: 10
+		})]
+	});
+}
+//#endregion
 //#region src/components/templates/CartTemplate.tsx
 function CartTemplate(props) {
 	const navigate = useNavigate();
 	const { selectedById, setSelected, setAllSelected } = useCartItemSelection(props.data);
-	const { orderAmount, shippingAmount, totalAmount } = useCalculateCartAmount((0, import_react.useMemo)(() => {
+	const selectedCartItems = (0, import_react.useMemo)(() => {
 		return props.data.filter((cartItem) => selectedById[cartItem.cartItemId]);
-	}, [props.data, selectedById]));
+	}, [props.data, selectedById]);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(View, {
 		gap: 24,
 		children: [
@@ -13768,99 +13877,17 @@ function CartTemplate(props) {
 					]
 				})]
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(List, {
-				divider: {
-					header: true,
-					item: true
-				},
-				header: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
-					alignItems: "center",
-					gap: 8,
-					py: 16,
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CheckBox, {
-						id: "check-all",
-						checked: !Object.entries(selectedById).some((el) => !el[1]),
-						onChange: setAllSelected
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
-						as: "label",
-						size: "s",
-						htmlFor: "check-all",
-						children: "전체선택"
-					})]
-				}),
-				children: props.data.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartItem, {
-					data: item,
-					checked: selectedById[item.cartItemId],
-					onSelect: (checked) => setSelected(item.cartItemId, checked),
-					onUpdate: props.refetchData,
-					onDelete: props.refetchData
-				}, item.cartItemId))
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartItemList, {
+				data: props.data,
+				selectedById,
+				onSelect: setSelected,
+				onSelectAll: setAllSelected,
+				refetchData: props.refetchData
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(List, {
-				divider: {
-					header: true,
-					footer: true
-				},
-				header: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
-					gap: 4,
-					py: 10,
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Image, {
-						src: `/shopping-cart-full-stack/infomation.svg`,
-						alt: "infomation icon"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Typo, {
-						size: "s",
-						children: [
-							"총 주문 금액이 ",
-							formatWon(1e5),
-							" 이상일 경우 무료 배송됩니다"
-						]
-					})]
-				}),
-				footer: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
-					justifyContent: "space-between",
-					py: 10,
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
-						weight: "bold",
-						children: "총 결제 금액"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
-						weight: "bold",
-						size: "l",
-						"aria-label": "총 결제 금액",
-						"data-value": totalAmount,
-						children: formatWon(totalAmount)
-					})]
-				}),
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Item, {
-					left: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
-						weight: "bold",
-						children: "주문 금액"
-					}),
-					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
-						weight: "bold",
-						size: "l",
-						"aria-label": "주문 금액",
-						"data-value": orderAmount,
-						children: formatWon(orderAmount)
-					}),
-					py: 10
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Item, {
-					left: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
-						weight: "bold",
-						children: "배송비"
-					}),
-					content: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
-						weight: "bold",
-						size: "l",
-						"aria-label": "배송비",
-						"data-value": shippingAmount,
-						children: formatWon(shippingAmount)
-					}),
-					py: 10
-				})]
-			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartAmountSummary, { selectedCartItems }),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(View.CTA, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 				variant: "cta",
-				onClick: () => navigate("/order", { state: { products: props.data.filter((cur) => selectedById[cur.cartItemId]) } }),
+				onClick: () => navigate("/order", { state: { products: selectedCartItems } }),
 				disabled: !Object.entries(selectedById).some((el) => el[1]),
 				children: "주문 확인"
 			}) })
