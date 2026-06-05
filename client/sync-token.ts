@@ -1,0 +1,129 @@
+import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { colorPalette, fontColor, spacing, radius, fontSize, fontWeight, buttonSize } from './token.config.ts';
+
+const ROOT = dirname(fileURLToPath(import.meta.url));
+
+function cssVarSection(comment: string, prefix: string, tokens: Record<string, string>): string {
+  const vars = Object.entries(tokens)
+    .map(([k, v]) => `  ${prefix}${k}: ${v};`)
+    .join('\n');
+  return `  /* ${comment} */\n${vars}`;
+}
+
+function colorPaletteSection(tokens: Record<string, string>): string {
+  const base: [string, string][] = [];
+  const gray: [string, string][] = [];
+
+  for (const [k, v] of Object.entries(tokens)) {
+    if (k.startsWith('gray-')) gray.push([k, v]);
+    else base.push([k, v]);
+  }
+
+  const toVars = (entries: [string, string][]) => entries.map(([k, v]) => `  --color-${k}: ${v};`).join('\n');
+
+  return [base.length ? toVars(base) : null, gray.length ? `  /* gray */\n${toVars(gray)}` : null]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+const rootBlock = [
+  ':root {',
+  colorPaletteSection(colorPalette as unknown as Record<string, string>),
+  '',
+  cssVarSection('spacing', '--spacing-', spacing as unknown as Record<string, string>),
+  '',
+  cssVarSection('border-radius', '--radius-', radius),
+  '',
+  cssVarSection('font-size', '--font-size-', fontSize),
+  '',
+  cssVarSection('font-weight', '--font-weight-', fontWeight),
+  '',
+  nestedCssVarSection(
+    'button-size',
+    '--button-size-',
+    buttonSize as unknown as Record<string, Record<string, string>>,
+  ),
+  '}',
+].join('\n');
+
+writeFileSync(join(ROOT, 'src/styles/token.css'), rootBlock + '\n');
+
+function tsKey(key: string): string {
+  if (/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)) return key;
+  return `'${key}'`;
+}
+
+function tokenConst(exportName: string, typeName: string, cssPrefix: string, tokens: Record<string, string>): string {
+  const isNumeric = /^\d+$/;
+  const entries = Object.keys(tokens)
+    .map((k) => `  ${isNumeric.test(k) ? k : tsKey(k)}: 'var(${cssPrefix}${k})',`)
+    .join('\n');
+  return (
+    `export const ${exportName} = {\n${entries}\n} as const;\n\n` +
+    `export type ${typeName} = keyof typeof ${exportName};`
+  );
+}
+
+function semanticConst(exportName: string, typeName: string, mapping: Record<string, string>): string {
+  const entries = Object.entries(mapping)
+    .map(([k, v]) => `  ${tsKey(k)}: 'var(--${v})',`)
+    .join('\n');
+  return (
+    `export const ${exportName} = {\n${entries}\n} as const;\n\n` +
+    `export type ${typeName} = keyof typeof ${exportName};`
+  );
+}
+
+function nestedCssVarSection(comment: string, prefix: string, tokens: Record<string, Record<string, string>>): string {
+  const vars = Object.entries(tokens)
+    .flatMap(([size, values]) =>
+      Object.entries(values).map(([property, value]) => `  ${prefix}${size}-${kebabCase(property)}: ${value};`),
+    )
+    .join('\n');
+  return `  /* ${comment} */\n${vars}`;
+}
+
+function nestedTokenConst(
+  exportName: string,
+  typeName: string,
+  cssPrefix: string,
+  tokens: Record<string, Record<string, string>>,
+): string {
+  const entries = Object.entries(tokens)
+    .map(([size, values]) => {
+      const nestedEntries = Object.keys(values)
+        .map((property) => `    ${tsKey(property)}: 'var(${cssPrefix}${size}-${kebabCase(property)})',`)
+        .join('\n');
+      return `  ${tsKey(size)}: {\n${nestedEntries}\n  },`;
+    })
+    .join('\n');
+  return `export const ${exportName} = {\n${entries}\n} as const;\n\nexport type ${typeName} = keyof typeof ${exportName};`;
+}
+
+function kebabCase(value: string): string {
+  return value.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`);
+}
+
+const tokensTs =
+  [
+    '// This file is auto-generated. Run `npm run sync-token` to update.',
+    tokenConst('SPACING', 'SpacingToken', '--spacing-', spacing as unknown as Record<string, string>),
+    tokenConst('FONT_SIZE', 'FontSizeToken', '--font-size-', fontSize),
+    tokenConst('FONT_WEIGHT', 'FontWeightToken', '--font-weight-', fontWeight),
+    semanticConst('FONT_COLOR', 'FontColorToken', fontColor as unknown as Record<string, string>),
+    tokenConst('RADIUS', 'RadiusToken', '--radius-', radius),
+    nestedTokenConst(
+      'BUTTON_SIZE',
+      'ButtonSizeToken',
+      '--button-size-',
+      buttonSize as unknown as Record<string, Record<string, string>>,
+    ),
+  ].join('\n\n') + '\n';
+
+writeFileSync(join(ROOT, 'src/tokens.ts'), tokensTs);
+
+console.log('Design tokens synced:');
+console.log('  src/styles/token.css');
+console.log('  src/styles/tokens.ts');
