@@ -11,7 +11,7 @@ export default function useCalculateCartAmount(cartItems: CartItem[]) {
   }, [cartItems]);
 
   const shippingAmount = useMemo(() => {
-    return !cartItems.length || orderAmount > FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+    return !cartItems.length || orderAmount >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
   }, [cartItems.length, orderAmount]);
 
   const totalAmount = useMemo(() => {
