@@ -9915,7 +9915,7 @@ var require_client = /* @__PURE__ */ __commonJSMin(((exports, module) => {
 //#region \0vite/preload-helper.js
 var scriptRel = "modulepreload";
 var assetsURL = function(dep) {
-	return "/" + dep;
+	return "/shopping-cart-full-stack/" + dep;
 };
 var seen = {};
 var __vitePreload = function preload(baseModule, deps, importerUrl) {
@@ -13269,13 +13269,13 @@ function Header() {
 		flexShrink: 0,
 		children: useLocation().pathname === "/" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Image, {
 			className: logoStyle,
-			src: `/logo.svg`,
+			src: `/shopping-cart-full-stack/logo.svg`,
 			alt: "shopping cart"
 		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
 			to: "/",
 			"aria-label": "뒤로가기",
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Image, {
-				src: `/back.svg`,
+				src: `/shopping-cart-full-stack/back.svg`,
 				alt: "뒤로가기"
 			})
 		})
@@ -13372,12 +13372,13 @@ var buttonStyle = (size) => css`
 `;
 //#endregion
 //#region src/components/common/CheckBox.tsx
-function CheckBox({ className, ...props }) {
+function CheckBox({ className, onChange, ...props }) {
 	const { spacingProps, restProps } = splitSpacingProps(props);
 	return import_react.createElement("input", {
 		...restProps,
 		type: "checkbox",
-		className: cx(checkBoxStyle, spacingStyle(spacingProps), className)
+		className: cx(checkBoxStyle, spacingStyle(spacingProps), className),
+		onChange: (event) => onChange?.(event.target.checked)
 	});
 }
 var checkBoxStyle = css`
@@ -13386,18 +13387,18 @@ var checkBoxStyle = css`
   appearance: none;
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-l);
-  background: url(${"/"}check.svg) center no-repeat;
+  background: url(${"/shopping-cart-full-stack/"}check.svg) center no-repeat;
   background-size: 16px;
 
   &:disabled {
     border: 1px solid var(--color-gray-200);
-    background: url(${"/"}check_disabled.svg) center no-repeat;
+    background: url(${"/shopping-cart-full-stack/"}check_disabled.svg) center no-repeat;
   }
 
   &:checked {
     border: 0;
     background-color: var(--color-black);
-    background-image: url(${"/"}check_checked.svg);
+    background-image: url(${"/shopping-cart-full-stack/"}check_checked.svg);
     background-position: center;
     background-repeat: no-repeat;
   }
@@ -13588,7 +13589,6 @@ function CartItem(props) {
 		cartItemId: props.data.cartItemId,
 		onSuccess: props.onDelete
 	});
-	const handleChangeChecked = (e) => props.onSelect(e.target.checked);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Item, {
 		direction: "column",
 		gap: 8,
@@ -13596,7 +13596,7 @@ function CartItem(props) {
 			justifyContent: "space-between",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CheckBox, {
 				checked: props.checked,
-				onChange: handleChangeChecked
+				onChange: props.onSelect
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 				size: "s",
 				onClick: () => deleteCartItemMutation.mutate(),
@@ -13780,7 +13780,7 @@ function CartTemplate(props) {
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CheckBox, {
 						id: "check-all",
 						checked: !Object.entries(selectedById).some((el) => !el[1]),
-						onChange: (e) => setAllSelected(e.target.checked)
+						onChange: setAllSelected
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
 						as: "label",
 						size: "s",
@@ -13805,7 +13805,7 @@ function CartTemplate(props) {
 					gap: 4,
 					py: 10,
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Image, {
-						src: `/infomation.svg`,
+						src: `/shopping-cart-full-stack/infomation.svg`,
 						alt: "infomation icon"
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Typo, {
 						size: "s",
