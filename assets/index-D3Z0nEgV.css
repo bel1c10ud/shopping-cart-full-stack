@@ -1,0 +1,144 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+/* 1. Use a more-intuitive box-sizing model */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+/* 2. Remove default margin */
+*:not(dialog) {
+  margin: 0;
+}
+/* 3. Enable keyword animations */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    interpolate-size: allow-keywords;
+  }
+}
+body {
+  /* 4. Increase line-height */
+  line-height: 1.5;
+
+  /* 5. Improve text rendering */
+  -webkit-font-smoothing: antialiased;
+}
+/* 6. Improve media defaults */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+/* 7. Inherit fonts for form controls */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+/* 8. Avoid text overflows */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+/* 9. Improve line wrapping */
+p {
+  text-wrap: pretty;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  text-wrap: balance;
+}
+/*
+  10. Create a root stacking context
+*/
+#root,
+/* stylelint-disable-next-line selector-id-pattern */
+#__next {
+  isolation: isolate;
+}
+ul {
+  list-style: none;
+  padding: 0;
+}
+:root {
+  --color-black: #000;
+  --color-white: #fff;
+
+  /* gray */
+  --color-gray-50: #fdfdfd;
+  --color-gray-100: #fafafa;
+  --color-gray-200: #e6e6e6;
+  --color-gray-300: #d4d4d4;
+  --color-gray-400: #8b95a1;
+  --color-gray-500: #6b7685;
+  --color-gray-600: #515c6b;
+  --color-gray-700: #3b4453;
+  --color-gray-800: #272e3b;
+  --color-gray-900: #181d27;
+  --color-gray-950: #0e1118;
+
+  /* spacing */
+  --spacing-4: 4px;
+  --spacing-6: 6px;
+  --spacing-8: 8px;
+  --spacing-10: 10px;
+  --spacing-12: 12px;
+  --spacing-14: 14px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-45: 45px;
+
+  /* border-radius */
+  --radius-s: 3px;
+  --radius-m: 4px;
+  --radius-l: 8px;
+
+  /* font-size */
+  --font-size-s: 12px;
+  --font-size-m: 16px;
+  --font-size-l: 20px;
+  --font-size-xl: 26px;
+  --font-size-2xl: 28px;
+
+  /* font-weight */
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* button-size */
+  --button-size-s-height: 24px;
+  --button-size-s-font-size: 12px;
+  --button-size-s-padding-x: 8px;
+  --button-size-m-height: 52px;
+  --button-size-m-font-size: 16px;
+  --button-size-m-padding-x: 14px;
+}
+html {
+  font-family:
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    Roboto,
+    'Helvetica Neue',
+    'Segoe UI',
+    'Apple SD Gothic Neo',
+    'Noto Sans KR',
+    'Malgun Gothic',
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol',
+    sans-serif;
+}
