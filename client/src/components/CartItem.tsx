@@ -2,11 +2,18 @@ import type { APIResponse, CartItem } from '../types';
 import useMutation from '../hooks/useMutation';
 import type { ChangeEvent } from 'react';
 import { formatWon } from '../utils';
+import Flex from './common/Flex';
+import Typo from './common/Typo';
+import Button from './common/Button';
+import { css } from '@emotion/css';
+import CheckBox from './common/CheckBox';
+import List from './common/List';
+import Image from './common/Image';
 
 export default function CartItem(props: {
   data: CartItem;
   checked: boolean;
-  onChangeChecked: (value: boolean) => void;
+  onSelect: (value: boolean) => void;
   onUpdate: () => void;
   onDelete: () => void;
 }) {
@@ -42,44 +49,67 @@ export default function CartItem(props: {
     },
   });
 
-  const handleChangeChecked = (e: ChangeEvent<HTMLInputElement>) => props.onChangeChecked(e.target.checked);
+  const handleChangeChecked = (e: ChangeEvent<HTMLInputElement>) => props.onSelect(e.target.checked);
 
   return (
-    <li>
-      <div>
-        <input type="checkbox" checked={props.checked} onChange={handleChangeChecked} />
-        <button onClick={() => deleteMutation.mutate()}>삭제</button>
-      </div>
-      <div>
-        <img src={props.data.product.image} />
-        <div>
-          <div>{props.data.product.name}</div>
-          <span>{formatWon(props.data.product.price)}</span>
-          <div>
-            <button
-              onClick={() =>
-                updateMutation.mutate({
-                  body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity - 1 },
-                })
-              }
-              disabled={updateMutation.status === 'loading' || props.data.quantity <= 1}
-            >
-              -
-            </button>
-            <span>{props.data.quantity}</span>
-            <button
-              onClick={() =>
-                updateMutation.mutate({
-                  body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity + 1 },
-                })
-              }
-              disabled={updateMutation.status === 'loading' || props.data.quantity >= 99}
-            >
-              +
-            </button>
-          </div>
-        </div>
-      </div>
-    </li>
+    <List.Item
+      direction="column"
+      gap={8}
+      header={
+        <Flex justifyContent="space-between">
+          <CheckBox checked={props.checked} onChange={handleChangeChecked} />
+          <Button size="s" onClick={() => deleteMutation.mutate()}>
+            삭제
+          </Button>
+        </Flex>
+      }
+      py={16}
+      content={
+        <Flex alignItems="center" gap={24}>
+          <Image className={imageStyle} src={props.data.product.image} alt={props.data.product.name} />
+          <Flex direction="column" gap={8}>
+            <Flex direction="column">
+              <Typo size="s">{props.data.product.name}</Typo>
+              <Typo size="xl" weight="bold">
+                {formatWon(props.data.product.price)}
+              </Typo>
+            </Flex>
+            <Flex alignItems="center" gap={8}>
+              <Button
+                size="s"
+                onClick={() =>
+                  updateMutation.mutate({
+                    body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity - 1 },
+                  })
+                }
+                disabled={updateMutation.status === 'loading' || props.data.quantity <= 1}
+              >
+                -
+              </Button>
+              <Typo as="span" size="s">
+                {props.data.quantity}
+              </Typo>
+              <Button
+                size="s"
+                onClick={() =>
+                  updateMutation.mutate({
+                    body: { cartItemId: props.data.cartItemId, quantity: props.data.quantity + 1 },
+                  })
+                }
+                disabled={updateMutation.status === 'loading' || props.data.quantity >= 99}
+              >
+                +
+              </Button>
+            </Flex>
+          </Flex>
+        </Flex>
+      }
+    />
   );
 }
+
+const imageStyle = css`
+  width: 112px;
+  height: 112px;
+  border-radius: var(--radius-l);
+`;

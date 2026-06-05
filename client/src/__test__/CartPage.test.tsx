@@ -85,16 +85,16 @@ describe('CartPage', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('상품이름A')).toBeInTheDocument();
-    expect(screen.getByText('상품이름B')).toBeInTheDocument();
+    const itemA = (await screen.findByText('상품이름A')).closest('li')!;
+    const itemB = screen.getByText('상품이름B').closest('li')!;
 
-    expect(screen.getAllByRole('img')).toHaveLength(2);
+    expect(within(itemA).getByRole('img')).toHaveAttribute('src', mockCartItems[0].product.image);
+    expect(within(itemA).getByText(/35,?000/)).toBeInTheDocument();
+    expect(within(itemA).getByText('2')).toBeInTheDocument();
 
-    expect(screen.getByText(/35,?000/)).toBeInTheDocument();
-    expect(screen.getByText(/25,?000/)).toBeInTheDocument();
-
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(within(itemB).getByRole('img')).toHaveAttribute('src', mockCartItems[1].product.image);
+    expect(within(itemB).getByText(/25,?000/)).toBeInTheDocument();
+    expect(within(itemB).getByText('1')).toBeInTheDocument();
   });
 
   it('진입 시 모든 상품을 선택된 상태로 표시한다', async () => {
@@ -887,7 +887,7 @@ describe('CartPage', () => {
     const checkoutButton = screen.getByRole('button', { name: '주문 확인' });
     fireEvent.click(checkoutButton);
 
-    const backButton = await screen.findByRole('button', { name: '뒤로가기' });
+    const backButton = await screen.findByRole('link', { name: '뒤로가기' });
     fireEvent.click(backButton);
 
     expect(await screen.findByText('상품이름A')).toBeInTheDocument();
