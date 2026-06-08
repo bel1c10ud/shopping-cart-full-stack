@@ -76,9 +76,12 @@ describe('CartPage 삭제', () => {
       expect(screen.queryByText('상품이름A')).not.toBeInTheDocument();
     });
 
-    const stored = JSON.parse(localStorage.getItem(CART_SELECT_LOCAL_STORAGE_KEY) || '{}');
-    expect(stored['1']).toBeUndefined();
-    expect(stored['2']).toBe(true);
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(CART_SELECT_LOCAL_STORAGE_KEY) || '{}');
+
+      expect(stored['1']).toBeUndefined();
+      expect(stored['2']).toBe(true);
+    });
   });
 
   it('제거 API 요청에 실패하면 사용자에게 에러 메시지를 표시한다', async () => {

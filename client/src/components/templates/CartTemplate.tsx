@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import type { CartItem as TCartItem } from '../../types';
-import useCartItemSelection from '../../hooks/useCartItemSelection';
 import Typo from '../common/Typo';
 import Flex from '../common/Flex';
 import View from '../common/View';
@@ -9,14 +8,19 @@ import Button from '../common/Button';
 import CartItemList from '../CartItemList';
 import CartAmountSummary from '../CartAmountSummary';
 
-export default function CartTemplate(props: { data: TCartItem[]; refetchData: () => void }) {
+export default function CartTemplate(props: {
+  data: TCartItem[];
+  selectedById: Record<string, boolean>;
+  onSelect: (cartItemId: string, checked: boolean) => void;
+  onSelectAll: (checked: boolean) => void;
+  onUpdateCartItemQuantity: (cartItem: Pick<TCartItem, 'cartItemId' | 'quantity'>) => void;
+  onDeleteCartItem: (cartItemId: TCartItem['cartItemId']) => void;
+}) {
   const navigate = useNavigate();
 
-  const { selectedById, setSelected, setAllSelected } = useCartItemSelection(props.data);
-
   const selectedCartItems = useMemo(() => {
-    return props.data.filter((cartItem) => selectedById[cartItem.cartItemId]);
-  }, [props.data, selectedById]);
+    return props.data.filter((cartItem) => props.selectedById[cartItem.cartItemId]);
+  }, [props.data, props.selectedById]);
 
   return (
     <View gap={24}>
@@ -30,10 +34,11 @@ export default function CartTemplate(props: { data: TCartItem[]; refetchData: ()
       </Flex>
       <CartItemList
         data={props.data}
-        selectedById={selectedById}
-        onSelect={setSelected}
-        onSelectAll={setAllSelected}
-        refetchData={props.refetchData}
+        selectedById={props.selectedById}
+        onSelect={props.onSelect}
+        onSelectAll={props.onSelectAll}
+        onUpdateCartItemQuantity={props.onUpdateCartItemQuantity}
+        onDeleteCartItem={props.onDeleteCartItem}
       />
       <CartAmountSummary selectedCartItems={selectedCartItems} />
       <View.CTA>
@@ -44,7 +49,7 @@ export default function CartTemplate(props: { data: TCartItem[]; refetchData: ()
               state: { products: selectedCartItems },
             })
           }
-          disabled={!Object.entries(selectedById).some((el) => el[1])}
+          disabled={!Object.entries(props.selectedById).some((el) => el[1])}
         >
           주문 확인
         </Button>

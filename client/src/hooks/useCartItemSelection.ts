@@ -18,7 +18,7 @@ export default function useCartItemSelection(cartItems?: CartItem[]) {
   );
 
   const setSelected = useCallback(
-    (cartItemId: string, checked: boolean) => {
+    (cartItemId: CartItem['cartItemId'], checked: boolean) => {
       setStorage((prev) => ({ ...prev, [cartItemId]: checked }));
     },
     [setStorage],

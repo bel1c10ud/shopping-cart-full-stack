@@ -1,25 +1,27 @@
 import type { APIResponse, CartItem } from '../../types';
 import useMutation from './useMutation';
 
-interface UseDeleteCartItemMutationOption {
-  cartItemId: CartItem['cartItemId'];
-  onSuccess: () => void;
+interface DeleteCartItemMutationOption {
+  onSuccess?: (data: Pick<CartItem, 'cartItemId'>) => Promise<void> | void;
+  onFail?: (fail: Record<string, string>) => Promise<void> | void;
+  onError?: (error: Error) => Promise<void> | void;
 }
 
-export default function useDeleteCartItemMutation({ cartItemId, onSuccess }: UseDeleteCartItemMutationOption) {
-  return useMutation<APIResponse<CartItem>>({
-    url: `${import.meta.env.VITE_API_URL}/cart/${cartItemId}`,
-    method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
+export default function useDeleteCartItemMutation(option?: DeleteCartItemMutationOption) {
+  return useMutation<Pick<CartItem, 'cartItemId'>, CartItem['cartItemId']>({
+    mutationFn: async (cartItemId) => {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/${cartItemId}`, {
+        method: 'DELETE',
+      });
+
+      const text = await res.text();
+
+      if (text.trim().length === 0) throw new Error(`Response error: ${res.status}`);
+
+      return JSON.parse(text) as APIResponse<Pick<CartItem, 'cartItemId'>>;
     },
-    onSuccess: (response) => {
-      if (response?.status === 'success') {
-        onSuccess();
-      }
-    },
-    onError: () => {
-      alert('장바구니 삭제에 실패했습니다.');
-    },
+    onSuccess: option?.onSuccess,
+    onFail: option?.onFail,
+    onError: option?.onError,
   });
 }

@@ -10,7 +10,8 @@ export default function CartItemList(props: {
   selectedById: Record<string, boolean>;
   onSelect: (cartItemId: string, checked: boolean) => void;
   onSelectAll: (checked: boolean) => void;
-  refetchData: () => void;
+  onUpdateCartItemQuantity: (cartItem: Pick<TCartItem, 'cartItemId' | 'quantity'>) => void;
+  onDeleteCartItem: (cartItemId: TCartItem['cartItemId']) => void;
 }) {
   return (
     <List
@@ -34,8 +35,8 @@ export default function CartItemList(props: {
           data={item}
           checked={props.selectedById[item.cartItemId]}
           onSelect={(checked) => props.onSelect(item.cartItemId, checked)}
-          onUpdate={props.refetchData}
-          onDelete={props.refetchData}
+          onUpdateCartItemQuantity={props.onUpdateCartItemQuantity}
+          onDeleteCartItem={props.onDeleteCartItem}
         />
       ))}
     </List>

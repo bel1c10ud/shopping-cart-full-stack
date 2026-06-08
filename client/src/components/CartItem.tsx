@@ -1,4 +1,4 @@
-import type { CartItem } from '../types';
+import type { CartItem as TCartItem } from '../types';
 import { formatWon } from '../utils';
 import Flex from './common/Flex';
 import Typo from './common/Typo';
@@ -6,26 +6,14 @@ import Button from './common/Button';
 import CheckBox from './common/CheckBox';
 import List from './common/List';
 import Image from './common/Image';
-import useUpdateCartItemMutation from '../hooks/mutations/useUpdateCartItemMutation';
-import useDeleteCartItemMutation from '../hooks/mutations/useDeleteCartItemMutation';
 
 export default function CartItem(props: {
-  data: CartItem;
+  data: TCartItem;
   checked: boolean;
   onSelect: (value: boolean) => void;
-  onUpdate: () => void;
-  onDelete: () => void;
+  onUpdateCartItemQuantity: (cartItem: Pick<TCartItem, 'cartItemId' | 'quantity'>) => void;
+  onDeleteCartItem: (cartItemId: TCartItem['cartItemId']) => void;
 }) {
-  const updateCartItemMutation = useUpdateCartItemMutation({
-    cartItemId: props.data.cartItemId,
-    onSuccess: props.onUpdate,
-  });
-
-  const deleteCartItemMutation = useDeleteCartItemMutation({
-    cartItemId: props.data.cartItemId,
-    onSuccess: props.onDelete,
-  });
-
   return (
     <List.Item
       direction="column"
@@ -33,7 +21,7 @@ export default function CartItem(props: {
       header={
         <Flex justifyContent="space-between">
           <CheckBox checked={props.checked} onChange={props.onSelect} />
-          <Button size="s" onClick={() => deleteCartItemMutation.mutate()}>
+          <Button size="s" onClick={() => props.onDeleteCartItem(props.data.cartItemId)}>
             삭제
           </Button>
         </Flex>
@@ -52,8 +40,13 @@ export default function CartItem(props: {
             <Flex alignItems="center" gap={8}>
               <Button
                 size="s"
-                onClick={() => updateCartItemMutation.mutate({ body: { quantity: props.data.quantity - 1 } })}
-                disabled={updateCartItemMutation.status === 'loading' || props.data.quantity <= 1}
+                onClick={() =>
+                  props.onUpdateCartItemQuantity({
+                    cartItemId: props.data.cartItemId,
+                    quantity: props.data.quantity - 1,
+                  })
+                }
+                disabled={props.data.quantity <= 1}
               >
                 -
               </Button>
@@ -62,8 +55,13 @@ export default function CartItem(props: {
               </Typo>
               <Button
                 size="s"
-                onClick={() => updateCartItemMutation.mutate({ body: { quantity: props.data.quantity + 1 } })}
-                disabled={updateCartItemMutation.status === 'loading' || props.data.quantity >= 99}
+                onClick={() =>
+                  props.onUpdateCartItemQuantity({
+                    cartItemId: props.data.cartItemId,
+                    quantity: props.data.quantity + 1,
+                  })
+                }
+                disabled={props.data.quantity >= 99}
               >
                 +
               </Button>
