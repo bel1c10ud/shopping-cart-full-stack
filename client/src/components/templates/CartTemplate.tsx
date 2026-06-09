@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
+import useCartItemSelection from '../../hooks/useCartItemSelection';
 import type { CartItem as TCartItem } from '../../types';
 import Typo from '../common/Typo';
 import Flex from '../common/Flex';
@@ -8,19 +9,14 @@ import Button from '../common/Button';
 import CartItemList from '../CartItemList';
 import CartAmountSummary from '../CartAmountSummary';
 
-export default function CartTemplate(props: {
-  data: TCartItem[];
-  selectedById: Record<string, boolean>;
-  onSelect: (cartItemId: string, checked: boolean) => void;
-  onSelectAll: (checked: boolean) => void;
-  onUpdateCartItemQuantity: (cartItem: Pick<TCartItem, 'cartItemId' | 'quantity'>) => void;
-  onDeleteCartItem: (cartItemId: TCartItem['cartItemId']) => void;
-}) {
+export default function CartTemplate(props: { data: TCartItem[] }) {
   const navigate = useNavigate();
 
+  const { selectedById } = useCartItemSelection(props.data);
+
   const selectedCartItems = useMemo(() => {
-    return props.data.filter((cartItem) => props.selectedById[cartItem.cartItemId]);
-  }, [props.data, props.selectedById]);
+    return props.data.filter((cartItem) => selectedById[cartItem.cartItemId]);
+  }, [props.data, selectedById]);
 
   return (
     <View gap={24}>
@@ -32,14 +28,7 @@ export default function CartTemplate(props: {
           현재 {props.data.length}종류의 상품이 담겨있습니다.
         </Typo>
       </Flex>
-      <CartItemList
-        data={props.data}
-        selectedById={props.selectedById}
-        onSelect={props.onSelect}
-        onSelectAll={props.onSelectAll}
-        onUpdateCartItemQuantity={props.onUpdateCartItemQuantity}
-        onDeleteCartItem={props.onDeleteCartItem}
-      />
+      <CartItemList data={props.data} />
       <CartAmountSummary selectedCartItems={selectedCartItems} />
       <View.CTA>
         <Button
@@ -49,7 +38,7 @@ export default function CartTemplate(props: {
               state: { products: selectedCartItems },
             })
           }
-          disabled={!Object.entries(props.selectedById).some((el) => el[1])}
+          disabled={!Object.entries(selectedById).some((el) => el[1])}
         >
           주문 확인
         </Button>

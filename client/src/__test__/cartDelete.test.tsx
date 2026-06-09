@@ -103,4 +103,29 @@ describe('CartPage 삭제', () => {
 
     alertMock.mockRestore();
   });
+
+  it('제거 API 요청에 실패하면 장바구니 목록을 다시 조회한다', async () => {
+    const getCartSpy = vi.fn();
+    server.use(getCartHandler(mockCartItems, getCartSpy), deleteCartItemErrorHandler());
+
+    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
+
+    renderCartPage();
+    await screen.findByText('상품이름A');
+
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const deleteButton = within(itemA).getByRole('button', { name: '삭제' });
+
+    fireEvent.click(deleteButton);
+
+    await waitFor(() => {
+      expect(alertMock).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(getCartSpy).toHaveBeenCalledTimes(2);
+    });
+
+    alertMock.mockRestore();
+  });
 });

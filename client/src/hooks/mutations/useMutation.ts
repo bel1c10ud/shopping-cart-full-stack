@@ -31,6 +31,8 @@ type MutationState<T> =
 
 interface MutationOption<T, K extends JsonValue> {
   mutationFn: (mutationKey: K) => Promise<APIResponse<T>>;
+  onMutate?: (mutationKey: K) => Promise<(() => void) | void> | (() => void) | void;
+  onSettled?: () => Promise<void> | void;
   onSuccess?: (data: T) => Promise<void> | void;
   onFail?: (fail: Record<string, string>) => Promise<void> | void;
   onError?: (error: Error) => Promise<void> | void;
@@ -67,6 +69,8 @@ export default function useMutation<T, K extends JsonValue>(option: MutationOpti
   }, []);
 
   const mutateAsync = useCallback(async (mutationKey: K) => {
+    let rollback: (() => void) | undefined;
+
     if (isMounted.current) {
       setState({
         status: 'loading',
@@ -77,6 +81,9 @@ export default function useMutation<T, K extends JsonValue>(option: MutationOpti
     }
 
     try {
+      const onMutateResult = await latestOption.current.onMutate?.(mutationKey);
+      rollback = typeof onMutateResult === 'function' ? onMutateResult : undefined;
+
       const response = await latestOption.current.mutationFn(mutationKey);
 
       if (isMounted.current && response.status === 'success') {
@@ -106,9 +113,15 @@ export default function useMutation<T, K extends JsonValue>(option: MutationOpti
         });
       }
 
+      if (response.status !== 'success') rollback?.();
+
+      await latestOption.current.onSettled?.();
+
       return response;
     } catch (reason) {
       const error = reason instanceof Error ? reason : new Error(String(reason));
+
+      rollback?.();
 
       if (isMounted.current) {
         setState({
@@ -118,6 +131,8 @@ export default function useMutation<T, K extends JsonValue>(option: MutationOpti
           error,
         });
       }
+
+      await latestOption.current.onSettled?.();
 
       throw error;
     }

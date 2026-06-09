@@ -1,4 +1,6 @@
 import type { APIResponse, CartItem } from '../../types';
+import useCartItemsQuery from '../queries/useCartItemsQuery';
+import useQueryCache from '../useQueryCache';
 import useMutation from './useMutation';
 
 interface DeleteCartItemMutationOption {
@@ -8,6 +10,9 @@ interface DeleteCartItemMutationOption {
 }
 
 export default function useDeleteCartItemMutation(option?: DeleteCartItemMutationOption) {
+  const cartItemsQuery = useCartItemsQuery();
+  const { getCache, setCache } = useQueryCache();
+
   return useMutation<Pick<CartItem, 'cartItemId'>, CartItem['cartItemId']>({
     mutationFn: async (cartItemId) => {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/cart/${cartItemId}`, {
@@ -20,7 +25,38 @@ export default function useDeleteCartItemMutation(option?: DeleteCartItemMutatio
 
       return JSON.parse(text) as APIResponse<Pick<CartItem, 'cartItemId'>>;
     },
-    onSuccess: option?.onSuccess,
+    onMutate: (cartItemId) => {
+      const previousCartItems = getCache<CartItem[]>(['GET', `${import.meta.env.VITE_API_URL}/cart`])?.data ?? [];
+
+      setCache<CartItem[]>(['GET', `${import.meta.env.VITE_API_URL}/cart`], (prev) => {
+        if (prev?.data === null || prev?.data === undefined) return prev;
+
+        return {
+          ...prev,
+          data: prev.data.filter((item) => item.cartItemId !== cartItemId),
+        };
+      });
+
+      return () => {
+        setCache<CartItem[]>(['GET', `${import.meta.env.VITE_API_URL}/cart`], (prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'success',
+                data: previousCartItems,
+                fail: null,
+                error: null,
+              }
+            : undefined,
+        );
+      };
+    },
+    onSettled: async () => {
+      await cartItemsQuery.refetch();
+    },
+    onSuccess: async (data) => {
+      await option?.onSuccess?.(data);
+    },
     onFail: option?.onFail,
     onError: option?.onError,
   });

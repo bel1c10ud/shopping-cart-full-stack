@@ -1,65 +1,57 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { APIResponse } from '../../types';
+import useQueryCache, { isFreshCacheEntry } from '../useQueryCache';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
-
-type QueryState<T> =
-  | {
-      status: 'idle' | 'loading';
-      data: null;
-      fail: null;
-      error: null;
-    }
-  | {
-      status: 'success';
-      data: T;
-      fail: null;
-      error: null;
-    }
-  | {
-      status: 'fail';
-      data: null;
-      fail: Record<string, string>;
-      error: null;
-    }
-  | {
-      status: 'error';
-      data: null;
-      fail: null;
-      error: Error;
-    };
 
 interface QueryOption<T, K extends JsonValue> {
   queryKey: K;
   queryFn: (queryKey: K) => Promise<APIResponse<T>>;
+  staleTime?: number;
   onSuccess?: (data: T) => Promise<void> | void;
   onFail?: (fail: Record<string, string>) => Promise<void> | void;
   onError?: (error: Error) => Promise<void> | void;
 }
 
+const idleState = {
+  status: 'idle',
+  data: null,
+  fail: null,
+  error: null,
+} as const;
+
 export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, K>) {
-  const [state, setState] = useState<QueryState<T>>({
-    status: 'idle',
-    data: null,
-    fail: null,
-    error: null,
-  });
   const latestOption = useRef(option);
-  const queryKeyHash = JSON.stringify(option.queryKey);
+  const queryKey = option.queryKey;
+  const queryKeyHash = JSON.stringify(queryKey);
+  const staleTime = option.staleTime ?? Infinity;
+
+  const { setCache, getCache, getCacheEntry } = useQueryCache();
+
+  const state = getCache<T>(queryKey) ?? idleState;
 
   useEffect(() => {
     latestOption.current = option;
   }, [option]);
 
   const refetchAsync = useCallback(async () => {
-    setState((prev) => (prev.status === 'idle' ? { ...prev, status: 'loading' } : prev));
+    const { queryKey } = latestOption.current;
+    const currentState = getCache<T>(queryKey) ?? idleState;
 
+    if (currentState.status === 'idle') {
+      setCache(queryKey, {
+        status: 'loading',
+        data: null,
+        fail: null,
+        error: null,
+      });
+    }
     try {
       const { queryFn, queryKey } = latestOption.current;
       const response = await queryFn(queryKey);
 
       if (response.status === 'success') {
-        setState({
+        setCache(queryKey, {
           status: 'success',
           data: response.data,
           fail: null,
@@ -68,7 +60,7 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
       }
 
       if (response.status === 'fail') {
-        setState({
+        setCache(queryKey, {
           status: 'fail',
           data: null,
           fail: response.data,
@@ -77,7 +69,7 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
       }
 
       if (response.status === 'error') {
-        setState({
+        setCache(queryKey, {
           status: 'error',
           data: null,
           fail: null,
@@ -89,7 +81,7 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
     } catch (reason) {
       const error = reason instanceof Error ? reason : new Error(String(reason));
 
-      setState({
+      setCache(latestOption.current.queryKey, {
         status: 'error',
         data: null,
         fail: null,
@@ -98,7 +90,7 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
 
       throw error;
     }
-  }, []);
+  }, [getCache, setCache]);
 
   const refetch = useCallback(async () => {
     try {
@@ -125,15 +117,15 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
   }, [refetchAsync]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    const cacheEntry = getCacheEntry<T>(latestOption.current.queryKey);
+
+    if (isFreshCacheEntry(cacheEntry, staleTime)) return;
+
     refetch();
-  }, [refetch, queryKeyHash]);
+  }, [getCacheEntry, queryKeyHash, refetch, staleTime]);
 
   return {
-    status: state.status,
-    data: state.data,
-    fail: state.fail,
-    error: state.error,
+    ...state,
     refetch,
     refetchAsync,
   };

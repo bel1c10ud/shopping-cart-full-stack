@@ -36,25 +36,25 @@ describe('CartPage 수량 변경', () => {
     expect(await within(itemA).findByText('3')).toBeInTheDocument();
   });
 
-  it('수량은 1개 이상 99개 이하로 제한한다', async () => {
+  it('수량이 1개이면 감소 버튼을 비활성화한다', async () => {
     mockCartItems[0].quantity = 1;
-    const { unmount } = renderCartPage();
+    renderCartPage();
+
     await screen.findByText('상품이름A');
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
     const minusButton = within(itemA).getByRole('button', { name: '-' });
     expect(minusButton).toBeDisabled();
+  });
 
-    unmount();
-
+  it('수량이 99개이면 증가 버튼을 비활성화한다', async () => {
     mockCartItems[0].quantity = 99;
-
     renderCartPage();
 
     await screen.findByText('상품이름A');
 
-    const itemA99 = screen.getByText('상품이름A').closest('li')!;
-    const plusButton = within(itemA99).getByRole('button', { name: '+' });
+    const itemA = screen.getByText('상품이름A').closest('li')!;
+    const plusButton = within(itemA).getByRole('button', { name: '+' });
     expect(plusButton).toBeDisabled();
   });
 
