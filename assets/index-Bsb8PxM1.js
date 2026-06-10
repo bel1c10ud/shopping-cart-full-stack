@@ -13450,6 +13450,363 @@ var buttonStyle = (size) => css`
 //#region src/utils.ts
 var formatWon = (amount) => `${amount.toLocaleString()}원`;
 //#endregion
+//#region src/hooks/useQueryCache.ts
+var isFreshCacheEntry = (entry, staleTime, now = Date.now()) => {
+	if (!entry) return false;
+	if (entry.state.status !== "success") return false;
+	if (staleTime === Infinity) return true;
+	return now - entry.updatedAt < staleTime;
+};
+var version = 0;
+var cache = /* @__PURE__ */ new Map();
+var listeners = /* @__PURE__ */ new Set();
+var hashQueryKey = (key) => JSON.stringify(key);
+var notify = () => {
+	version += 1;
+	listeners.forEach((listener) => listener());
+};
+var queryCache = {
+	subscribe(listener) {
+		listeners.add(listener);
+		return () => listeners.delete(listener);
+	},
+	getSnapshot() {
+		return version;
+	},
+	getEntry(key) {
+		return cache.get(hashQueryKey(key));
+	},
+	get(key) {
+		return cache.get(hashQueryKey(key))?.state;
+	},
+	set(key, updater) {
+		const queryKeyHash = hashQueryKey(key);
+		const entry = cache.get(queryKeyHash);
+		const nextState = typeof updater === "function" ? updater(entry?.state) : updater;
+		if (!nextState) return;
+		cache.set(queryKeyHash, {
+			state: nextState,
+			updatedAt: Date.now()
+		});
+		notify();
+	},
+	invalidate(key) {
+		cache.delete(hashQueryKey(key));
+		notify();
+	},
+	clear() {
+		cache.clear();
+		notify();
+	}
+};
+function useQueryCache() {
+	(0, import_react.useSyncExternalStore)(queryCache.subscribe, queryCache.getSnapshot);
+	return {
+		setCache: queryCache.set,
+		getCache: queryCache.get,
+		getCacheEntry: queryCache.getEntry,
+		invalidateCache: queryCache.invalidate
+	};
+}
+//#endregion
+//#region src/hooks/queries/useQuery.ts
+var idleState = {
+	status: "idle",
+	data: null,
+	fail: null,
+	error: null
+};
+function useQuery(option) {
+	const latestOption = (0, import_react.useRef)(option);
+	const queryKey = option.queryKey;
+	const queryKeyHash = JSON.stringify(queryKey);
+	const staleTime = option.staleTime ?? Infinity;
+	const { setCache, getCache, getCacheEntry } = useQueryCache();
+	const state = getCache(queryKey) ?? idleState;
+	(0, import_react.useEffect)(() => {
+		latestOption.current = option;
+	}, [option]);
+	const refetchAsync = (0, import_react.useCallback)(async () => {
+		const { queryKey } = latestOption.current;
+		if ((getCache(queryKey) ?? idleState).status === "idle") setCache(queryKey, {
+			status: "loading",
+			data: null,
+			fail: null,
+			error: null
+		});
+		try {
+			const { queryFn, queryKey } = latestOption.current;
+			const response = await queryFn(queryKey);
+			if (response.status === "success") setCache(queryKey, {
+				status: "success",
+				data: response.data,
+				fail: null,
+				error: null
+			});
+			if (response.status === "fail") setCache(queryKey, {
+				status: "fail",
+				data: null,
+				fail: response.data,
+				error: null
+			});
+			if (response.status === "error") setCache(queryKey, {
+				status: "error",
+				data: null,
+				fail: null,
+				error: new Error(response.message)
+			});
+			return response;
+		} catch (reason) {
+			const error = reason instanceof Error ? reason : new Error(String(reason));
+			setCache(latestOption.current.queryKey, {
+				status: "error",
+				data: null,
+				fail: null,
+				error
+			});
+			throw error;
+		}
+	}, [getCache, setCache]);
+	const refetch = (0, import_react.useCallback)(async () => {
+		try {
+			const response = await refetchAsync();
+			if (response.status === "success") await latestOption.current.onSuccess?.(response.data);
+			if (response.status === "fail") await latestOption.current.onFail?.(response.data);
+			if (response.status === "error") await latestOption.current.onError?.(new Error(response.message));
+			return response;
+		} catch (reason) {
+			const error = reason instanceof Error ? reason : new Error(String(reason));
+			await latestOption.current.onError?.(error);
+			return;
+		}
+	}, [refetchAsync]);
+	(0, import_react.useEffect)(() => {
+		if (isFreshCacheEntry(getCacheEntry(latestOption.current.queryKey), staleTime)) return;
+		refetch();
+	}, [
+		getCacheEntry,
+		queryKeyHash,
+		refetch,
+		staleTime
+	]);
+	return {
+		...state,
+		refetch,
+		refetchAsync
+	};
+}
+//#endregion
+//#region src/hooks/queries/useCartItemsQuery.ts
+var isAPIResponse = (value) => {
+	if (typeof value !== "object" || value === null || !("status" in value)) return false;
+	if (value.status === "success") return "data" in value;
+	if (value.status === "fail") return "data" in value;
+	if (value.status === "error") return "message" in value;
+	return false;
+};
+function useCartItemsQuery(option) {
+	return useQuery({
+		queryKey: ["GET", `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart`],
+		staleTime: option?.staleTime,
+		queryFn: async ([method, url]) => {
+			const text = await (await fetch(url, { method })).text();
+			if (!text.trim()) throw new Error("Response error: empty response");
+			const response = JSON.parse(text);
+			if (!isAPIResponse(response)) throw new Error("Response error: invalid response");
+			return response;
+		},
+		onSuccess: option?.onSuccess,
+		onFail: option?.onFail,
+		onError: option?.onError
+	});
+}
+//#endregion
+//#region src/hooks/mutations/useMutation.ts
+function useMutation(option) {
+	const [state, setState] = (0, import_react.useState)({
+		status: "idle",
+		data: null,
+		fail: null,
+		error: null
+	});
+	const latestOption = (0, import_react.useRef)(option);
+	const isMounted = (0, import_react.useRef)(null);
+	(0, import_react.useEffect)(() => {
+		latestOption.current = option;
+	}, [option]);
+	(0, import_react.useEffect)(() => {
+		isMounted.current = true;
+		return () => {
+			isMounted.current = false;
+		};
+	}, []);
+	const reset = (0, import_react.useCallback)(() => {
+		setState({
+			status: "idle",
+			data: null,
+			fail: null,
+			error: null
+		});
+	}, []);
+	const mutateAsync = (0, import_react.useCallback)(async (mutationKey) => {
+		let rollback;
+		if (isMounted.current) setState({
+			status: "loading",
+			data: null,
+			fail: null,
+			error: null
+		});
+		try {
+			const onMutateResult = await latestOption.current.onMutate?.(mutationKey);
+			rollback = typeof onMutateResult === "function" ? onMutateResult : void 0;
+			const response = await latestOption.current.mutationFn(mutationKey);
+			if (isMounted.current && response.status === "success") setState({
+				status: "success",
+				data: response.data,
+				fail: null,
+				error: null
+			});
+			if (isMounted.current && response.status === "fail") setState({
+				status: "fail",
+				data: null,
+				fail: response.data,
+				error: null
+			});
+			if (isMounted.current && response.status === "error") setState({
+				status: "error",
+				data: null,
+				fail: null,
+				error: new Error(response.message)
+			});
+			if (response.status !== "success") rollback?.();
+			await latestOption.current.onSettled?.();
+			return response;
+		} catch (reason) {
+			const error = reason instanceof Error ? reason : new Error(String(reason));
+			rollback?.();
+			if (isMounted.current) setState({
+				status: "error",
+				data: null,
+				fail: null,
+				error
+			});
+			await latestOption.current.onSettled?.();
+			throw error;
+		}
+	}, []);
+	const mutate = (0, import_react.useCallback)(async (mutationKey) => {
+		try {
+			const response = await mutateAsync(mutationKey);
+			if (response.status === "success") await latestOption.current.onSuccess?.(response.data);
+			if (response.status === "fail") await latestOption.current.onFail?.(response.data);
+			if (response.status === "error") await latestOption.current.onError?.(new Error(response.message));
+			return response;
+		} catch (reason) {
+			const error = reason instanceof Error ? reason : new Error(String(reason));
+			await latestOption.current.onError?.(error);
+			return;
+		}
+	}, [mutateAsync]);
+	return {
+		...state,
+		mutate,
+		mutateAsync,
+		reset
+	};
+}
+//#endregion
+//#region src/hooks/mutations/useDeleteCartItemMutation.ts
+function useDeleteCartItemMutation(option) {
+	const cartItemsQuery = useCartItemsQuery();
+	const { getCache, setCache } = useQueryCache();
+	return useMutation({
+		mutationFn: async (cartItemId) => {
+			const res = await fetch(`https://shopping-cart-full-stack-production-b68a.up.railway.app/cart/${cartItemId}`, { method: "DELETE" });
+			const text = await res.text();
+			if (text.trim().length === 0) throw new Error(`Response error: ${res.status}`);
+			return JSON.parse(text);
+		},
+		onMutate: (cartItemId) => {
+			const previousCartItems = getCache(["GET", `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart`])?.data ?? [];
+			setCache(["GET", `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart`], (prev) => {
+				if (prev?.data === null || prev?.data === void 0) return prev;
+				return {
+					...prev,
+					data: prev.data.filter((item) => item.cartItemId !== cartItemId)
+				};
+			});
+			return () => {
+				setCache(["GET", `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart`], (prev) => prev ? {
+					...prev,
+					status: "success",
+					data: previousCartItems,
+					fail: null,
+					error: null
+				} : void 0);
+			};
+		},
+		onSettled: async () => {
+			await cartItemsQuery.refetch();
+		},
+		onSuccess: async (data) => {
+			await option?.onSuccess?.(data);
+		},
+		onFail: option?.onFail,
+		onError: option?.onError
+	});
+}
+//#endregion
+//#region src/hooks/mutations/useUpdateCartItemMutation.ts
+function useUpdateCartItemMutation(option) {
+	const cartItemsQuery = useCartItemsQuery();
+	const { getCache, setCache } = useQueryCache();
+	return useMutation({
+		mutationFn: async (cartItem) => {
+			const res = await fetch(`https://shopping-cart-full-stack-production-b68a.up.railway.app/cart/${cartItem.cartItemId}`, {
+				method: "PATCH",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ quantity: cartItem.quantity })
+			});
+			const text = await res.text();
+			if (text.trim().length === 0) throw new Error(`Response error: ${res.status}`);
+			return JSON.parse(text);
+		},
+		onMutate: (cartItem) => {
+			const previousCartItems = getCache(["GET", `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart`])?.data ?? [];
+			setCache(["GET", `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart`], (prev) => {
+				if (prev?.data === null || prev?.data === void 0) return prev;
+				const newCartItems = [...prev.data];
+				const itemIndex = newCartItems.findIndex((item) => item.cartItemId === cartItem.cartItemId);
+				if (itemIndex !== -1) newCartItems[itemIndex] = {
+					...newCartItems[itemIndex],
+					quantity: cartItem.quantity
+				};
+				return {
+					...prev,
+					data: newCartItems
+				};
+			});
+			return () => {
+				setCache(["GET", `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart`], (prev) => prev ? {
+					...prev,
+					status: "success",
+					data: previousCartItems,
+					fail: null,
+					error: null
+				} : void 0);
+			};
+		},
+		onSettled: async () => {
+			await cartItemsQuery.refetch();
+		},
+		onSuccess: async (data) => {
+			await option?.onSuccess?.(data);
+		},
+		onFail: option?.onFail,
+		onError: option?.onError
+	});
+}
+//#endregion
 //#region src/components/common/CheckBox.tsx
 function CheckBox({ className, onChange, ...props }) {
 	const { spacingProps, restProps } = splitSpacingProps(props);
@@ -13553,120 +13910,17 @@ var itemDividerStyle = css`
   }
 `;
 //#endregion
-//#region src/hooks/useMutation.ts
-var parseJsonResponse$1 = async (res) => {
-	if (res.status === 204) return null;
-	const text = await res.text();
-	return text.trim() ? JSON.parse(text) : null;
-};
-var createUrl$1 = (url, params) => {
-	if (!params) return url;
-	const queryString = new URLSearchParams(params).toString();
-	if (!queryString) return url;
-	return `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
-};
-function useMutation(option) {
-	const [status, setStatus] = (0, import_react.useState)("idle");
-	const [data, setData] = (0, import_react.useState)(null);
-	const [error, setError] = (0, import_react.useState)(null);
-	const isMounted = (0, import_react.useRef)(true);
-	const { method, url, headers, onSuccess, onError } = option;
-	(0, import_react.useEffect)(() => {
-		isMounted.current = true;
-		return () => {
-			isMounted.current = false;
-		};
-	}, []);
-	const reset = (0, import_react.useCallback)(() => {
-		setStatus("idle");
-		setData(null);
-		setError(null);
-	}, []);
-	const mutateAsync = (0, import_react.useCallback)(async ({ body, query } = {}) => {
-		setStatus("loading");
-		setData(null);
-		setError(null);
-		try {
-			const res = await fetch(createUrl$1(url, query), {
-				method: method?.toUpperCase() ?? "POST",
-				headers,
-				body: body !== void 0 ? JSON.stringify(body) : void 0
-			});
-			const result = await parseJsonResponse$1(res);
-			if (isMounted.current) setData(result);
-			if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-			if (isMounted.current) {
-				setStatus("success");
-				onSuccess?.(result);
-			}
-			return result;
-		} catch (reason) {
-			const err = reason instanceof Error ? reason : new Error(String(reason));
-			if (isMounted.current) {
-				setError(err);
-				setStatus("error");
-				onError?.(err);
-			}
-			throw err;
-		}
-	}, [
-		method,
-		url,
-		headers,
-		onSuccess,
-		onError
-	]);
-	return {
-		mutate: (0, import_react.useCallback)((option = {}) => {
-			mutateAsync(option).catch(() => {});
-		}, [mutateAsync]),
-		mutateAsync,
-		status,
-		data,
-		error,
-		reset
-	};
-}
-//#endregion
-//#region src/hooks/mutations/useUpdateCartItemMutation.ts
-function useUpdateCartItemMutation({ cartItemId, onSuccess }) {
-	return useMutation({
-		url: `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart/${cartItemId}`,
-		method: "PATCH",
-		headers: { "Content-Type": "application/json" },
-		onSuccess: (response) => {
-			if (response?.status === "success") onSuccess();
-		},
-		onError: () => {
-			alert("장바구니 수량 변경에 실패했습니다.");
-		}
-	});
-}
-//#endregion
-//#region src/hooks/mutations/useDeleteCartItemMutation.ts
-function useDeleteCartItemMutation({ cartItemId, onSuccess }) {
-	return useMutation({
-		url: `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart/${cartItemId}`,
-		method: "DELETE",
-		headers: { "Content-Type": "application/json" },
-		onSuccess: (response) => {
-			if (response?.status === "success") onSuccess();
-		},
-		onError: () => {
-			alert("장바구니 삭제에 실패했습니다.");
-		}
-	});
-}
-//#endregion
 //#region src/components/CartItem.tsx
 function CartItem(props) {
-	const updateCartItemMutation = useUpdateCartItemMutation({
-		cartItemId: props.data.cartItemId,
-		onSuccess: props.onUpdate
+	const cartItem = props.data;
+	const { selectedById, setSelected } = useCartItemSelection();
+	const updateCartItemQuantityMutation = useUpdateCartItemMutation({
+		onFail: () => alert("장바구니 수량 변경에 실패했어요"),
+		onError: () => alert("장바구니 수량 변경에 실패했어요")
 	});
 	const deleteCartItemMutation = useDeleteCartItemMutation({
-		cartItemId: props.data.cartItemId,
-		onSuccess: props.onDelete
+		onFail: () => alert("장바구니 삭제에 실패했어요"),
+		onError: () => alert("장바구니 삭제에 실패했어요")
 	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List.Item, {
 		direction: "column",
@@ -13674,11 +13928,11 @@ function CartItem(props) {
 		header: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
 			justifyContent: "space-between",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CheckBox, {
-				checked: props.checked,
-				onChange: props.onSelect
+				checked: selectedById[cartItem.cartItemId] ?? true,
+				onChange: (checked) => setSelected(cartItem.cartItemId, checked)
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 				size: "s",
-				onClick: () => deleteCartItemMutation.mutate(),
+				onClick: () => deleteCartItemMutation.mutate(cartItem.cartItemId),
 				children: "삭제"
 			})]
 		}),
@@ -13690,8 +13944,8 @@ function CartItem(props) {
 				width: 112,
 				height: 112,
 				radius: "l",
-				src: props.data.product.image,
-				alt: props.data.product.name
+				src: cartItem.product.image,
+				alt: cartItem.product.name
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
 				direction: "column",
 				gap: 8,
@@ -13699,11 +13953,11 @@ function CartItem(props) {
 					direction: "column",
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
 						size: "s",
-						children: props.data.product.name
+						children: cartItem.product.name
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
 						size: "xl",
 						weight: "bold",
-						children: formatWon(props.data.product.price)
+						children: formatWon(cartItem.product.price)
 					})]
 				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Flex, {
 					alignItems: "center",
@@ -13711,19 +13965,25 @@ function CartItem(props) {
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 							size: "s",
-							onClick: () => updateCartItemMutation.mutate({ body: { quantity: props.data.quantity - 1 } }),
-							disabled: updateCartItemMutation.status === "loading" || props.data.quantity <= 1,
+							onClick: () => updateCartItemQuantityMutation.mutate({
+								cartItemId: cartItem.cartItemId,
+								quantity: cartItem.quantity - 1
+							}),
+							disabled: cartItem.quantity <= 1,
 							children: "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
 							as: "span",
 							size: "s",
-							children: props.data.quantity
+							children: cartItem.quantity
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 							size: "s",
-							onClick: () => updateCartItemMutation.mutate({ body: { quantity: props.data.quantity + 1 } }),
-							disabled: updateCartItemMutation.status === "loading" || props.data.quantity >= 99,
+							onClick: () => updateCartItemQuantityMutation.mutate({
+								cartItemId: cartItem.cartItemId,
+								quantity: cartItem.quantity + 1
+							}),
+							disabled: cartItem.quantity >= 99,
 							children: "+"
 						})
 					]
@@ -13735,6 +13995,7 @@ function CartItem(props) {
 //#endregion
 //#region src/components/CartItemList.tsx
 function CartItemList(props) {
+	const { selectedById, setAllSelected } = useCartItemSelection(props.data);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(List, {
 		divider: {
 			header: true,
@@ -13746,8 +14007,8 @@ function CartItemList(props) {
 			py: 16,
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CheckBox, {
 				id: "check-all",
-				checked: !Object.entries(props.selectedById).some((el) => !el[1]),
-				onChange: props.onSelectAll
+				checked: !Object.entries(selectedById).some((el) => !el[1]),
+				onChange: setAllSelected
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Typo, {
 				as: "label",
 				size: "s",
@@ -13755,13 +14016,7 @@ function CartItemList(props) {
 				children: "전체선택"
 			})]
 		}),
-		children: props.data.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartItem, {
-			data: item,
-			checked: props.selectedById[item.cartItemId],
-			onSelect: (checked) => props.onSelect(item.cartItemId, checked),
-			onUpdate: props.refetchData,
-			onDelete: props.refetchData
-		}, item.cartItemId))
+		children: props.data.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartItem, { data: item }, item.cartItemId))
 	});
 }
 //#endregion
@@ -13853,7 +14108,7 @@ function CartAmountSummary(props) {
 //#region src/components/templates/CartTemplate.tsx
 function CartTemplate(props) {
 	const navigate = useNavigate();
-	const { selectedById, setSelected, setAllSelected } = useCartItemSelection(props.data);
+	const { selectedById } = useCartItemSelection(props.data);
 	const selectedCartItems = (0, import_react.useMemo)(() => {
 		return props.data.filter((cartItem) => selectedById[cartItem.cartItemId]);
 	}, [props.data, selectedById]);
@@ -13877,13 +14132,7 @@ function CartTemplate(props) {
 					]
 				})]
 			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartItemList, {
-				data: props.data,
-				selectedById,
-				onSelect: setSelected,
-				onSelectAll: setAllSelected,
-				refetchData: props.refetchData
-			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartItemList, { data: props.data }),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartAmountSummary, { selectedCartItems }),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(View.CTA, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 				variant: "cta",
@@ -13942,80 +14191,17 @@ function CartSkeletonTemplate() {
 	})] });
 }
 //#endregion
-//#region src/hooks/useQuery.ts
-var parseJsonResponse = async (res) => {
-	if (res.status === 204) return null;
-	const text = await res.text();
-	return text.trim() ? JSON.parse(text) : null;
-};
-var createUrl = (url, params) => {
-	if (!params) return url;
-	const queryString = new URLSearchParams(params).toString();
-	if (!queryString) return url;
-	return `${url}${url.includes("?") ? "&" : "?"}${queryString}`;
-};
-function useQuery(option) {
-	const [status, setStatus] = (0, import_react.useState)("idle");
-	const [data, setData] = (0, import_react.useState)(null);
-	const [error, setError] = (0, import_react.useState)(null);
-	const { method: rawMethod, url, params, headers, body, enabled } = option;
-	const request = (0, import_react.useCallback)(async (signal) => {
-		const method = rawMethod?.toUpperCase() ?? "GET";
-		const hasBody = method !== "GET" && body !== void 0;
-		setStatus("loading");
-		setError(null);
-		try {
-			const res = await fetch(createUrl(url, params), {
-				method,
-				headers,
-				body: hasBody ? JSON.stringify(body) : void 0,
-				signal
-			});
-			const data = await parseJsonResponse(res);
-			if (signal?.aborted) return;
-			setData(data);
-			if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-			setStatus("success");
-		} catch (reason) {
-			if (signal?.aborted) return;
-			setStatus("error");
-			setError(reason instanceof Error ? reason : new Error(String(reason)));
-		}
-	}, [
-		rawMethod,
-		url,
-		params,
-		headers,
-		body
-	]);
-	(0, import_react.useEffect)(() => {
-		if (enabled === false) return;
-		const controller = new AbortController();
-		request(controller.signal);
-		return () => {
-			controller.abort();
-		};
-	}, [request, enabled]);
-	return {
-		status,
-		data,
-		error,
-		refetch: (0, import_react.useCallback)(() => {
-			request(new AbortController().signal);
-		}, [request])
-	};
-}
-//#endregion
 //#region src/pages/CartPage.tsx
 function CartPage() {
-	const { data, refetch } = useQuery({ url: `https://shopping-cart-full-stack-production-b68a.up.railway.app/cart` });
-	if (!data) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartSkeletonTemplate, {});
-	if (data && data.status === "success" && data.data.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartEmptyTemplate, {});
-	if (data && data.status === "success") return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartTemplate, {
-		data: data.data,
-		refetchData: refetch
+	const cartItemsQuery = useCartItemsQuery({
+		onFail: () => alert("장바구니를 가져오지 못했어요"),
+		onError: () => alert("장바구니를 가져오지 못했어요")
 	});
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartErrorTemplate, {});
+	const cartItems = cartItemsQuery.data ?? [];
+	if (cartItemsQuery.status === "idle" || cartItemsQuery.status === "loading") return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartSkeletonTemplate, {});
+	if (cartItemsQuery.status === "fail" || cartItemsQuery.status === "error") return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartErrorTemplate, {});
+	if (cartItemsQuery.status === "success" && cartItems.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartEmptyTemplate, {});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartTemplate, { data: cartItems });
 }
 //#endregion
 //#region src/components/templates/OrderTemplate.tsx
