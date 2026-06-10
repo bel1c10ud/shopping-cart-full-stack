@@ -1,0 +1,53 @@
+:root {
+  --color-black: #000;
+  --color-white: #fff;
+
+  /* gray */
+  --color-gray-50: #fdfdfd;
+  --color-gray-100: #fafafa;
+  --color-gray-200: #e6e6e6;
+  --color-gray-300: #d4d4d4;
+  --color-gray-400: #8b95a1;
+  --color-gray-500: #6b7685;
+  --color-gray-600: #515c6b;
+  --color-gray-700: #3b4453;
+  --color-gray-800: #272e3b;
+  --color-gray-900: #181d27;
+  --color-gray-950: #0e1118;
+
+  /* spacing */
+  --spacing-4: 4px;
+  --spacing-6: 6px;
+  --spacing-8: 8px;
+  --spacing-10: 10px;
+  --spacing-12: 12px;
+  --spacing-14: 14px;
+  --spacing-16: 16px;
+  --spacing-24: 24px;
+  --spacing-32: 32px;
+  --spacing-45: 45px;
+
+  /* border-radius */
+  --radius-s: 3px;
+  --radius-m: 4px;
+  --radius-l: 8px;
+
+  /* font-size */
+  --font-size-s: 12px;
+  --font-size-m: 16px;
+  --font-size-l: 20px;
+  --font-size-xl: 26px;
+  --font-size-2xl: 28px;
+
+  /* font-weight */
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* button-size */
+  --button-size-s-height: 24px;
+  --button-size-s-font-size: 12px;
+  --button-size-s-padding-x: 8px;
+  --button-size-m-height: 52px;
+  --button-size-m-font-size: 16px;
+  --button-size-m-padding-x: 14px;
+}
