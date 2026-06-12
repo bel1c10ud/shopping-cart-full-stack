@@ -60,12 +60,14 @@
 | ------------ | --------- | ---- | ------------------------- | ------ |
 | `cartItemId` | `string`  | ✓    | 장바구니 항목 고유 식별자 |        |
 | `quantity`   | `number`  | ✓    | 장바구니 수량             | 1 ~ 99 |
+| `isSelected` | `boolean` | ✓    | 주문 대상 선택 여부       |        |
 | `product`    | `Product` | ✓    | 상품 정보                 |        |
 
 ```json
 {
   "cartItemId": "string",
   "quantity": 1,
+  "isSelected": true,
   "product": {
     "productId": "string",
     "name": "string",
@@ -75,6 +77,59 @@
   }
 }
 ```
+
+### OrderItem
+
+| 필드       | 타입      | 필수 | 설명      | 제약   |
+| ---------- | --------- | ---- | --------- | ------ |
+| `product`  | `Product` | ✓    | 상품 정보 |        |
+| `quantity` | `number`  | ✓    | 주문 수량 | 1 ~ 99 |
+
+### Coupon
+
+| 필드             | 타입      | 필수 | 설명                 | 제약 |
+| ---------------- | --------- | ---- | -------------------- | ---- |
+| `couponId`       | `string`  | ✓    | 쿠폰 고유 식별자     |      |
+| `isSelected`     | `boolean` | ✓    | 쿠폰 선택 여부       |      |
+| `isDisabled`     | `boolean` | ✓    | 쿠폰 사용 불가 여부  |      |
+| `name`           | `string`  | ✓    | 쿠폰명               |      |
+| `dueDate`        | `string`  | ✓    | 쿠폰 만료일          | ISO 8601 날짜 형식 |
+| `minOrderAmount` | `number`  | ✓    | 최소 주문 금액       | >= 0 |
+| `availableTime`  | `object`  | ✓    | 쿠폰 사용 가능 시간  |      |
+
+```json
+{
+  "couponId": "string",
+  "isSelected": false,
+  "isDisabled": false,
+  "name": "2개 구매 시 1개 무료 쿠폰",
+  "dueDate": "2026-07-11",
+  "minOrderAmount": 100000,
+  "availableTime": {
+    "startTime": "09:00",
+    "endTime": "18:00"
+  }
+}
+```
+
+### AmountSummary
+
+| 필드             | 타입     | 필수 | 설명              | 제약 |
+| ---------------- | -------- | ---- | ----------------- | ---- |
+| `orderAmount`    | `number` | ✓    | 상품 주문 금액    | >= 0 |
+| `shippingAmount` | `number` | ✓    | 배송비            | >= 0 |
+| `discountAmount` | `number` | ✓    | 할인 금액         | >= 0 |
+| `totalAmount`    | `number` | ✓    | 최종 결제 금액    | >= 0 |
+
+### Order
+
+| 필드           | 타입              | 필수 | 설명                 | 제약 |
+| -------------- | ----------------- | ---- | -------------------- | ---- |
+| `orderId`      | `string`          | ✓    | 주문 고유 식별자     |      |
+| `isRemoteArea` | `boolean`         | ✓    | 도서산간 지역 여부   |      |
+| `items`        | `OrderItem[]`     | ✓    | 주문 상품 목록       |      |
+| `coupons`      | `Coupon[]`        | ✓    | 주문에 적용 가능한 쿠폰 목록 | |
+| `amount`       | `AmountSummary`   | ✓    | 결제 금액 정보       |      |
 
 ---
 
@@ -248,6 +303,7 @@ Content-Type: application/json
 | `quantity`  | `number` | ✓    | 추가할 상품 수량        |
 
 > 여러 항목을 한 번에 추가하는 방식 대신, 항목별로 개별 요청하는 방식을 채택.
+> 새로 추가된 장바구니 항목의 `isSelected` 기본값은 `true`이다.
 
 #### 응답
 
@@ -258,10 +314,6 @@ Content-Type: application/json
   "data": CartItem
 }
 ```
-
-> 응답으로 항목 전체를 반환해주는게 맞을까?
-> https://blog.postman.com/http-patch-method/#section-8
-> 전체를 돌려 주는게 더 적절하다고 판단
 
 ```json
 // 400 Bad Request - 유효성 검증 실패
@@ -312,7 +364,7 @@ Content-Type: application/json
 
 ---
 
-### 장바구니 수량 변경
+### 장바구니 항목 변경
 
 ```
 PATCH /cart/:cartItemId
@@ -334,9 +386,12 @@ Content-Type: application/json
 
 **Body**
 
-| 필드       | 타입     | 필수 | 설명        |
-| ---------- | -------- | ---- | ----------- |
-| `quantity` | `number` | ✓    | 변경할 수량 |
+| 필드         | 타입      | 필수 | 설명                |
+| ------------ | --------- | ---- | ------------------- |
+| `quantity`   | `number`  |      | 변경할 수량         |
+| `isSelected` | `boolean` |      | 주문 대상 선택 여부 |
+
+> 수량 변경과 선택 상태 변경을 같은 장바구니 항목 수정으로 본다. 두 필드 중 하나 이상을 포함해야 한다.
 
 #### 응답
 
@@ -353,7 +408,9 @@ Content-Type: application/json
 {
   "status": "fail",
   "data": {
-    "quantity": "수량은 1 이상 99 이하의 정수여야 합니다."
+    "body": "수정할 항목은 필수입니다.",
+    "quantity": "수량은 1 이상 99 이하의 정수여야 합니다.",
+    "isSelected": "선택 여부는 boolean 값이어야 합니다."
   }
 }
 ```
@@ -368,10 +425,13 @@ Content-Type: application/json
 }
 ```
 
-| 필드       | 조건                       | 에러 메시지                                |
-| ---------- | -------------------------- | ------------------------------------------ |
-| `quantity` | 누락                       | `수량은 필수입니다.`                       |
-| `quantity` | 1 미만, 99 초과, 정수 아님 | `수량은 1 이상 99 이하의 정수여야 합니다.` |
+> 응답 예시는 복수의 필드가 동시에 실패한 경우를 나타낸다. 실제 응답에는 실패한 필드만 포함된다.
+
+| 필드         | 조건                       | 에러 메시지                                |
+| ------------ | -------------------------- | ------------------------------------------ |
+| `body`       | `quantity`, `isSelected` 모두 누락 | `수정할 항목은 필수입니다.`           |
+| `quantity`   | 1 미만, 99 초과, 정수 아님 | `수량은 1 이상 99 이하의 정수여야 합니다.` |
+| `isSelected` | boolean이 아닌 경우        | `선택 여부는 boolean 값이어야 합니다.`     |
 
 ---
 
@@ -409,6 +469,385 @@ DELETE /cart/:cartItemId
   "status": "fail",
   "data": {
     "cartItemId": "존재하지 않는 장바구니 항목입니다."
+  }
+}
+```
+
+---
+
+## 결제 금액 API
+
+### 장바구니 결제 금액 조회
+
+```
+GET /cart/amount
+```
+
+#### 응답
+
+```json
+// 200 OK
+{
+  "status": "success",
+  "data": {
+    "orderAmount": 100000,
+    "shippingAmount": 0,
+    "discountAmount": 0,
+    "totalAmount": 100000
+  }
+}
+```
+
+> `isSelected`가 `true`인 장바구니 항목을 기준으로 금액을 계산한다. 선택된 항목이 없는 경우 모든 금액은 `0`으로 반환한다.
+
+---
+
+## 주문 API
+
+### 주문 생성
+
+```
+POST /order
+```
+
+#### 요청
+
+**Headers**
+
+```
+Content-Type: application/json
+```
+
+**Body**
+
+| 필드        | 타입      | 필수 | 설명             |
+| ----------- | --------- | ---- | ---------------- |
+| `items`     | `array`   | ✓    | 주문 상품 목록   |
+
+`items` 항목
+
+| 필드        | 타입     | 필수 | 설명                    | 제약   |
+| ----------- | -------- | ---- | ----------------------- | ------ |
+| `productId` | `string` | ✓    | 주문할 상품 고유 식별자 |        |
+| `quantity`  | `number` | ✓    | 주문 수량               | 1 ~ 99 |
+
+```json
+{
+  "items": [
+    {
+      "productId": "string",
+      "quantity": 1
+    }
+  ]
+}
+```
+
+#### 응답
+
+```json
+// 201 Created
+{
+  "status": "success",
+  "data": Order
+}
+```
+
+```json
+// 400 Bad Request - 유효성 검증 실패
+{
+  "status": "fail",
+  "data": {
+    "items": "주문 상품은 1개 이상이어야 합니다.",
+    "quantity": "수량은 1 이상 99 이하의 정수여야 합니다."
+  }
+}
+```
+
+```json
+// 404 Not Found - 존재하지 않는 상품
+{
+  "status": "fail",
+  "data": {
+    "productId": "존재하지 않는 상품입니다."
+  }
+}
+```
+
+| 필드        | 조건                       | 에러 메시지                                |
+| ----------- | -------------------------- | ------------------------------------------ |
+| `items`     | 누락 또는 빈 배열          | `주문 상품은 1개 이상이어야 합니다.`       |
+| `productId` | 누락                       | `상품 ID는 필수입니다.`                    |
+| `quantity`  | 누락                       | `수량은 필수입니다.`                       |
+| `quantity`  | 1 미만, 99 초과, 정수 아님 | `수량은 1 이상 99 이하의 정수여야 합니다.` |
+
+---
+
+### 주문 정보 조회
+
+```
+GET /order/:orderId
+```
+
+#### 요청
+
+**Path Parameter**
+
+| 파라미터  | 타입     | 설명                    |
+| --------- | -------- | ----------------------- |
+| `orderId` | `string` | 조회할 주문 고유 식별자 |
+
+#### 응답
+
+```json
+// 200 OK
+{
+  "status": "success",
+  "data": Order
+}
+```
+
+```json
+// 404 Not Found - 존재하지 않는 주문
+{
+  "status": "fail",
+  "data": {
+    "orderId": "존재하지 않는 주문입니다."
+  }
+}
+```
+
+---
+
+### 주문 정보 수정
+
+```
+PATCH /order/:orderId
+```
+
+#### 요청
+
+**Path Parameter**
+
+| 파라미터  | 타입     | 설명                    |
+| --------- | -------- | ----------------------- |
+| `orderId` | `string` | 수정할 주문 고유 식별자 |
+
+**Headers**
+
+```
+Content-Type: application/json
+```
+
+**Body**
+
+| 필드           | 타입      | 필수 | 설명               |
+| -------------- | --------- | ---- | ------------------ |
+| `isRemoteArea` | `boolean` | ✓    | 도서산간 지역 여부 |
+
+#### 응답
+
+```json
+// 200 OK
+{
+  "status": "success",
+  "data": Order
+}
+```
+
+```json
+// 400 Bad Request - 유효성 검증 실패
+{
+  "status": "fail",
+  "data": {
+    "isRemoteArea": "도서산간 지역 여부는 boolean 값이어야 합니다."
+  }
+}
+```
+
+```json
+// 404 Not Found - 존재하지 않는 주문
+{
+  "status": "fail",
+  "data": {
+    "orderId": "존재하지 않는 주문입니다."
+  }
+}
+```
+
+| 필드           | 조건                | 에러 메시지                                      |
+| -------------- | ------------------- | ------------------------------------------------ |
+| `isRemoteArea` | 누락                | `도서산간 지역 여부는 필수입니다.`               |
+| `isRemoteArea` | boolean이 아닌 경우 | `도서산간 지역 여부는 boolean 값이어야 합니다.`  |
+
+---
+
+## 쿠폰 API
+
+### 주문 쿠폰 목록 조회
+
+```
+GET /order/:orderId/coupons
+```
+
+#### 요청
+
+**Path Parameter**
+
+| 파라미터  | 타입     | 설명                    |
+| --------- | -------- | ----------------------- |
+| `orderId` | `string` | 조회할 주문 고유 식별자 |
+
+#### 응답
+
+```json
+// 200 OK
+{
+  "status": "success",
+  "data": Coupon[]
+}
+```
+
+```json
+// 404 Not Found - 존재하지 않는 주문
+{
+  "status": "fail",
+  "data": {
+    "orderId": "존재하지 않는 주문입니다."
+  }
+}
+```
+
+---
+
+### 주문 쿠폰 변경
+
+```
+PATCH /order/:orderId/coupons
+```
+
+#### 요청
+
+**Path Parameter**
+
+| 파라미터  | 타입     | 설명                    |
+| --------- | -------- | ----------------------- |
+| `orderId` | `string` | 수정할 주문 고유 식별자 |
+
+**Headers**
+
+```
+Content-Type: application/json
+```
+
+**Body**
+
+| 필드        | 타입       | 필수 | 설명                 |
+| ----------- | ---------- | ---- | -------------------- |
+| `couponIds` | `string[]` | ✓    | 적용할 쿠폰 ID 목록  |
+
+```json
+{
+  "couponIds": ["string"]
+}
+```
+
+#### 응답
+
+```json
+// 200 OK
+{
+  "status": "success",
+  "data": Order
+}
+```
+
+```json
+// 400 Bad Request - 유효성 검증 실패
+{
+  "status": "fail",
+  "data": {
+    "couponIds": "쿠폰 ID 목록은 배열이어야 합니다."
+  }
+}
+```
+
+```json
+// 404 Not Found - 존재하지 않는 주문 또는 쿠폰
+{
+  "status": "fail",
+  "data": {
+    "couponId": "존재하지 않는 쿠폰입니다."
+  }
+}
+```
+
+| 필드        | 조건                 | 에러 메시지                         |
+| ----------- | -------------------- | ----------------------------------- |
+| `couponIds` | 누락 또는 배열 아님  | `쿠폰 ID 목록은 배열이어야 합니다.` |
+| `couponIds` | 사용할 수 없는 쿠폰 포함 | `사용할 수 없는 쿠폰입니다.`    |
+
+---
+
+### 쿠폰 할인 금액 조회
+
+```
+POST /order/:orderId/coupons/discount
+```
+
+#### 요청
+
+**Path Parameter**
+
+| 파라미터  | 타입     | 설명                    |
+| --------- | -------- | ----------------------- |
+| `orderId` | `string` | 조회할 주문 고유 식별자 |
+
+**Headers**
+
+```
+Content-Type: application/json
+```
+
+**Body**
+
+| 필드        | 타입       | 필수 | 설명                |
+| ----------- | ---------- | ---- | ------------------- |
+| `couponIds` | `string[]` | ✓    | 계산할 쿠폰 ID 목록 |
+
+```json
+{
+  "couponIds": ["string"]
+}
+```
+
+#### 응답
+
+```json
+// 200 OK
+{
+  "status": "success",
+  "data": {
+    "discountAmount": 6000
+  }
+}
+```
+
+```json
+// 400 Bad Request - 유효성 검증 실패
+{
+  "status": "fail",
+  "data": {
+    "couponIds": "쿠폰 ID 목록은 배열이어야 합니다."
+  }
+}
+```
+
+```json
+// 404 Not Found - 존재하지 않는 주문 또는 쿠폰
+{
+  "status": "fail",
+  "data": {
+    "couponId": "존재하지 않는 쿠폰입니다."
   }
 }
 ```
