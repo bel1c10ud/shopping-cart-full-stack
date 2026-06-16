@@ -1,5 +1,6 @@
 import request from 'supertest';
 import app from '../app';
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../constants';
 import { cartItems } from '../repositories/InMemoryCartItemsRepository';
 import { products } from '../repositories/InMemoryProductsRepository';
 
@@ -276,6 +277,110 @@ describe('장바구니', () => {
 
       it('존재하지 않는 장바구니 항목을 수정하면 404 에러가 발생한다', async () => {
         await request(app).patch('/cart/999').send({ quantity: 2 }).expect(404);
+      });
+    });
+
+    describe('결제 금액 조회 (GET /cart/amount)', () => {
+      it('선택된 장바구니 상품의 결제 금액을 조회한다', async () => {
+        products.set('1', {
+          productId: '1',
+          name: '상품이름A',
+          price: FREE_SHIPPING_THRESHOLD,
+          image: '이미지',
+          stock: 10,
+        });
+        products.set('2', {
+          productId: '2',
+          name: '상품이름B',
+          price: 50000,
+          image: '이미지',
+          stock: 10,
+        });
+
+        cartItems.set('1', {
+          cartItemId: '1',
+          productId: '1',
+          isSelected: true,
+          quantity: 1,
+        });
+        cartItems.set('2', {
+          cartItemId: '2',
+          productId: '2',
+          isSelected: false,
+          quantity: 2,
+        });
+
+        const response = await request(app).get('/cart/amount').expect(200);
+
+        expect(response.body).toEqual({
+          status: 'success',
+          data: {
+            orderAmount: FREE_SHIPPING_THRESHOLD,
+            shippingAmount: 0,
+            discountAmount: 0,
+            totalAmount: FREE_SHIPPING_THRESHOLD,
+          },
+        });
+      });
+
+      it('무료 배송 기준 미만이면 배송비를 포함해 결제 금액을 조회한다', async () => {
+        const orderAmount = FREE_SHIPPING_THRESHOLD - 1;
+
+        products.set('1', {
+          productId: '1',
+          name: '상품이름A',
+          price: orderAmount,
+          image: '이미지',
+          stock: 10,
+        });
+
+        cartItems.set('1', {
+          cartItemId: '1',
+          productId: '1',
+          isSelected: true,
+          quantity: 1,
+        });
+
+        const response = await request(app).get('/cart/amount').expect(200);
+
+        expect(response.body).toEqual({
+          status: 'success',
+          data: {
+            orderAmount,
+            shippingAmount: SHIPPING_FEE,
+            discountAmount: 0,
+            totalAmount: orderAmount + SHIPPING_FEE,
+          },
+        });
+      });
+
+      it('선택된 장바구니 상품이 없으면 모든 금액을 0으로 조회한다', async () => {
+        products.set('1', {
+          productId: '1',
+          name: '상품이름A',
+          price: 100000,
+          image: '이미지',
+          stock: 10,
+        });
+
+        cartItems.set('1', {
+          cartItemId: '1',
+          productId: '1',
+          isSelected: false,
+          quantity: 1,
+        });
+
+        const response = await request(app).get('/cart/amount').expect(200);
+
+        expect(response.body).toEqual({
+          status: 'success',
+          data: {
+            orderAmount: 0,
+            shippingAmount: 0,
+            discountAmount: 0,
+            totalAmount: 0,
+          },
+        });
       });
     });
 
