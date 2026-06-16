@@ -6,8 +6,10 @@ export interface Product {
   stock: number;
 }
 
-export interface CartItem extends Pick<Product, 'productId'> {
+export interface CartItem {
   cartItemId: string;
+  isSelected: boolean;
+  productId: Product['productId'];
   quantity: number;
 }
 
@@ -26,7 +28,7 @@ export interface CartItemsRepository {
   deleteById(cartItemId: CartItem['cartItemId']): Promise<Pick<CartItem, 'cartItemId'> | null>;
 }
 
-export interface CartItemWithProduct extends Pick<CartItem, 'cartItemId' | 'quantity'> {
+export interface CartItemWithProduct extends Omit<CartItem, 'productId'> {
   product: Product;
 }
 
@@ -38,10 +40,10 @@ export interface ProductsServicePort {
 
 export interface CartItemsServicePort {
   getCartItems(): Promise<CartItemWithProduct[]>;
-  insertCartItem(cartItem: Omit<CartItem, 'cartItemId'>): Promise<CartItemWithProduct>;
+  insertCartItem(cartItem: Omit<CartItem, 'cartItemId' | 'isSelected'>): Promise<CartItemWithProduct>;
   patchCartItem(
     cartItemId: CartItem['cartItemId'],
-    cartItemPartial: Pick<CartItem, 'quantity'>,
+    cartItemPartial: Partial<Omit<CartItem, 'productId' | 'cartItemId'>>,
   ): Promise<CartItemWithProduct>;
   deleteCartItem(cartItemId: CartItem['cartItemId']): Promise<Pick<CartItem, 'cartItemId'>>;
 }

@@ -21,6 +21,7 @@ describe('장바구니', () => {
     cartItems.set('1', {
       cartItemId: '1',
       productId: '1',
+      isSelected: true,
       quantity: 1,
     });
 
@@ -55,6 +56,30 @@ describe('장바구니', () => {
       .expect(404);
   });
 
+  it('장바구니에 담긴 상품의 선택 여부를 변경할 수 있다.', async () => {
+    products.set('1', {
+      productId: '1',
+      name: '상품이름A',
+      price: 35000,
+      image: '이미지',
+      stock: 1,
+    });
+
+    cartItems.set('1', {
+      cartItemId: '1',
+      productId: '1',
+      isSelected: true,
+      quantity: 1,
+    });
+
+    await request(app)
+      .patch('/cart/1')
+      .send({
+        isSelected: false,
+      })
+      .expect(200);
+  });
+
   it('장바구니에 담긴 상품의 수량을 변경할 수 있다.', async () => {
     products.set('1', {
       productId: '1',
@@ -67,6 +92,7 @@ describe('장바구니', () => {
     cartItems.set('1', {
       cartItemId: '1',
       productId: '1',
+      isSelected: true,
       quantity: 1,
     });
 
@@ -90,6 +116,7 @@ describe('장바구니', () => {
     cartItems.set('1', {
       cartItemId: '1',
       productId: '1',
+      isSelected: true,
       quantity: 1,
     });
 
@@ -108,6 +135,7 @@ describe('장바구니', () => {
     cartItems.set('1', {
       cartItemId: '1',
       productId: '1',
+      isSelected: true,
       quantity: 1,
     });
 
@@ -124,10 +152,7 @@ describe('장바구니', () => {
     describe('상품 담기 (POST /cart)', () => {
       describe('productId', () => {
         it('productId가 누락되는 경우 400 에러가 발생한다', async () => {
-          await request(app)
-            .post('/cart')
-            .send({ quantity: 1 })
-            .expect(400);
+          await request(app).post('/cart').send({ quantity: 1 }).expect(400);
         });
 
         it('productId가 빈 문자열인 경우 400 에러가 발생한다', async () => {
@@ -139,10 +164,7 @@ describe('장바구니', () => {
             stock: 1,
           });
 
-          await request(app)
-            .post('/cart')
-            .send({ productId: '', quantity: 1 })
-            .expect(400);
+          await request(app).post('/cart').send({ productId: '', quantity: 1 }).expect(400);
         });
       });
 
@@ -158,79 +180,108 @@ describe('장바구니', () => {
         });
 
         it('quantity가 누락되는 경우 400 에러가 발생한다', async () => {
-          await request(app)
-            .post('/cart')
-            .send({ productId: '1' })
-            .expect(400);
+          await request(app).post('/cart').send({ productId: '1' }).expect(400);
         });
 
         it('quantity가 0인 경우 400 에러가 발생한다', async () => {
-          await request(app)
-            .post('/cart')
-            .send({ productId: '1', quantity: 0 })
-            .expect(400);
+          await request(app).post('/cart').send({ productId: '1', quantity: 0 }).expect(400);
         });
 
         it('quantity가 음수인 경우 400 에러가 발생한다', async () => {
-          await request(app)
-            .post('/cart')
-            .send({ productId: '1', quantity: -1 })
-            .expect(400);
+          await request(app).post('/cart').send({ productId: '1', quantity: -1 }).expect(400);
         });
 
         it('quantity가 99를 초과하는 경우 400 에러가 발생한다', async () => {
-          await request(app)
-            .post('/cart')
-            .send({ productId: '1', quantity: 100 })
-            .expect(400);
+          await request(app).post('/cart').send({ productId: '1', quantity: 100 }).expect(400);
         });
 
         it('quantity가 소수인 경우 400 에러가 발생한다', async () => {
-          await request(app)
-            .post('/cart')
-            .send({ productId: '1', quantity: 1.5 })
-            .expect(400);
+          await request(app).post('/cart').send({ productId: '1', quantity: 1.5 }).expect(400);
         });
 
         it('quantity가 1인 경우 정상 등록된다', async () => {
-          await request(app)
-            .post('/cart')
-            .send({ productId: '1', quantity: 1 })
-            .expect(201);
+          await request(app).post('/cart').send({ productId: '1', quantity: 1 }).expect(201);
         });
 
         it('quantity가 99인 경우 정상 등록된다', async () => {
-          await request(app)
-            .post('/cart')
-            .send({ productId: '1', quantity: 99 })
-            .expect(201);
+          await request(app).post('/cart').send({ productId: '1', quantity: 99 }).expect(201);
         });
       });
     });
 
-    describe('수량 변경 (PATCH /cart/:cartItemId)', () => {
-      it('quantity가 누락되는 경우 400 에러가 발생한다', async () => {
-        cartItems.set('1', { cartItemId: '1', productId: '1', quantity: 1 });
+    describe('상품 변경 (PATCH /cart/:cartItemId)', () => {
+      beforeEach(() => {
+        products.set('1', {
+          productId: '1',
+          name: '상품이름A',
+          price: 35000,
+          image: '이미지',
+          stock: 10,
+        });
 
-        await request(app)
+        cartItems.set('1', {
+          cartItemId: '1',
+          productId: '1',
+          isSelected: true,
+          quantity: 1,
+        });
+      });
+
+      it('isSelected를 전달하면 주문 대상 선택 여부를 변경한다', async () => {
+        const response = await request(app).patch('/cart/1').send({ isSelected: false }).expect(200);
+
+        expect(response.body).toEqual({
+          status: 'success',
+          data: expect.objectContaining({
+            cartItemId: '1',
+            quantity: 1,
+            isSelected: false,
+          }),
+        });
+      });
+
+      it('quantity와 isSelected 중 하나 이상을 전달하면 장바구니 상품 정보를 변경한다', async () => {
+        const response = await request(app)
           .patch('/cart/1')
-          .send({})
-          .expect(400);
+          .send({ quantity: 3, isSelected: false })
+          .expect(200);
+
+        expect(response.body).toEqual({
+          status: 'success',
+          data: expect.objectContaining({
+            cartItemId: '1',
+            quantity: 3,
+            isSelected: false,
+          }),
+        });
+      });
+
+      it('수정할 항목이 없는 경우 400 에러가 발생한다', async () => {
+        const response = await request(app).patch('/cart/1').send({}).expect(400);
+
+        expect(response.body).toEqual({
+          status: 'fail',
+          data: expect.objectContaining({ cartItem: expect.any(String) }),
+        });
+      });
+
+      it('isSelected가 boolean 값이 아니면 400 에러가 발생한다', async () => {
+        const response = await request(app).patch('/cart/1').send({ isSelected: 'false' }).expect(400);
+
+        expect(response.body).toEqual({
+          status: 'fail',
+          data: expect.objectContaining({ isSelected: expect.any(String) }),
+        });
       });
 
       it('존재하지 않는 장바구니 항목을 수정하면 404 에러가 발생한다', async () => {
-        await request(app)
-          .patch('/cart/999')
-          .send({ quantity: 2 })
-          .expect(404);
+        await request(app).patch('/cart/999').send({ quantity: 2 }).expect(404);
       });
     });
 
     describe('상품 삭제 (DELETE /cart/:cartItemId)', () => {
       it('존재하지 않는 장바구니 항목을 삭제하면 404 에러가 발생한다', async () => {
-        await request(app)
-          .delete('/cart/999')
-          .expect(404);
+        await request(app).delete('/cart/999').expect(404);
       });
     });
   });

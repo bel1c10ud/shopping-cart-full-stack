@@ -5,14 +5,17 @@ const resolveFieldError =
   (issue: z.core.$ZodRawIssue) =>
     issue.code === 'invalid_type' && issue.input === undefined ? required : invalid;
 
+const ProductIsSelectedSchema = z.boolean({
+  error: '선택 여부는 boolean 값이어야 합니다.',
+});
+
 const ProductNameRequestSchema = z.string({
   error: '상품명은 필수입니다.',
 });
 
-const ProductNameSchema = ProductNameRequestSchema.min(1, { error: '상품명은 필수입니다.' }).max(
-  100,
-  { error: '상품명은 최대 100자까지 허용됩니다.' },
-);
+const ProductNameSchema = ProductNameRequestSchema.min(1, { error: '상품명은 필수입니다.' }).max(100, {
+  error: '상품명은 최대 100자까지 허용됩니다.',
+});
 
 const ProductImageRequestSchema = z.string({
   error: '상품 이미지는 필수입니다.',
@@ -71,6 +74,9 @@ const QuantitySchema = QuantityRequestSchema.int({
   .min(1, { error: '수량은 1 이상 99 이하의 정수여야 합니다.' })
   .max(99, { error: '수량은 1 이상 99 이하의 정수여야 합니다.' });
 
+const hasCartItemUpdateField = (body: { quantity?: number; isSelected?: boolean }) =>
+  body.quantity !== undefined || body.isSelected !== undefined;
+
 const ProductRequestSchema = z.object({
   name: ProductNameRequestSchema,
   price: ProductPriceRequestSchema,
@@ -86,16 +92,22 @@ export const DeleteProductRequestParamsSchema = z.object({
 
 const CartItemRequestSchema = z.object({
   productId: ProductIdRequestSchema,
+  isSelected: ProductIsSelectedSchema,
   quantity: QuantityRequestSchema,
 });
 
-export const InsertCartItemBodySchema = CartItemRequestSchema;
+export const InsertCartItemBodySchema = CartItemRequestSchema.omit({ isSelected: true });
 
 export const UpdateCartItemRequestParamsSchema = z.object({
   cartItemId: CartItemIdParamsSchema,
 });
 
-export const UpdateCartItemRequestBodySchema = CartItemRequestSchema.pick({ quantity: true });
+export const UpdateCartItemRequestBodySchema = CartItemRequestSchema.omit({ productId: true })
+  .partial()
+  .refine(hasCartItemUpdateField, {
+    message: '수량 또는 선택 여부 중 하나는 필수입니다.',
+    path: ['cartItem'],
+  });
 
 export const DeleteCartItemRequestParamsSchema = UpdateCartItemRequestParamsSchema;
 
@@ -108,5 +120,15 @@ export const ProductSchema = z.object({
 
 export const CartItemSchema = z.object({
   productId: ProductIdSchema,
+  isSelected: ProductIsSelectedSchema,
   quantity: QuantitySchema,
 });
+
+export const InsertCartItemSchema = CartItemSchema.omit({ isSelected: true });
+
+export const UpdateCartItemSchema = CartItemSchema.omit({ productId: true })
+  .partial()
+  .refine(hasCartItemUpdateField, {
+    message: '수량 또는 선택 여부 중 하나는 필수입니다.',
+    path: ['cartItem'],
+  });

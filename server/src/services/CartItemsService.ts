@@ -1,9 +1,4 @@
-import {
-  CartItem,
-  CartItemsRepository,
-  CartItemsServicePort,
-  ProductsRepository,
-} from '../types';
+import { CartItem, CartItemsRepository, CartItemsServicePort, ProductsRepository } from '../types';
 import {
   CartItemDeletionFailedError,
   CartItemNotFoundError,
@@ -11,7 +6,7 @@ import {
   ProductAlreadyInCartError,
   ProductNotFoundError,
 } from '../errors';
-import { CartItemSchema } from '../schemas';
+import { InsertCartItemSchema, UpdateCartItemSchema } from '../schemas';
 
 class CartItemsService implements CartItemsServicePort {
   private readonly productsRepository;
@@ -40,16 +35,14 @@ class CartItemsService implements CartItemsServicePort {
       return {
         cartItemId: item.cartItemId,
         quantity: item.quantity,
+        isSelected: item.isSelected,
         product,
       };
     });
   }
 
-  async insertCartItem(cartItem: {
-    productId: CartItem['productId'];
-    quantity: CartItem['quantity'];
-  }) {
-    const parsedCartItem = CartItemSchema.parse(cartItem);
+  async insertCartItem(cartItem: { productId: CartItem['productId']; quantity: CartItem['quantity'] }) {
+    const parsedCartItem = InsertCartItemSchema.parse(cartItem);
 
     const product = await this.productsRepository.getById(parsedCartItem.productId);
 
@@ -61,20 +54,24 @@ class CartItemsService implements CartItemsServicePort {
       throw new ProductAlreadyInCartError(product.productId);
     }
 
-    const inserted = await this.cartItemsRepository.insertByUser(parsedCartItem);
+    const inserted = await this.cartItemsRepository.insertByUser({
+      ...parsedCartItem,
+      isSelected: true,
+    });
 
     return {
       cartItemId: inserted.cartItemId,
       quantity: inserted.quantity,
+      isSelected: inserted.isSelected,
       product,
     };
   }
 
   async patchCartItem(
     cartItemId: CartItem['cartItemId'],
-    cartItemPartial: { quantity: CartItem['quantity'] },
+    cartItemPartial: Partial<Omit<CartItem, 'productId' | 'cartItemId'>>,
   ) {
-    const parsedCartItemPartial = CartItemSchema.pick({ quantity: true }).parse(cartItemPartial);
+    const parsedCartItemPartial = UpdateCartItemSchema.parse(cartItemPartial);
 
     const cartItem = await this.cartItemsRepository.getById(cartItemId);
 
@@ -86,7 +83,7 @@ class CartItemsService implements CartItemsServicePort {
 
     const newCartItem = {
       ...cartItem,
-      quantity: parsedCartItemPartial.quantity,
+      ...parsedCartItemPartial,
     };
 
     await this.cartItemsRepository.updateById(cartItemId, newCartItem);
@@ -94,6 +91,7 @@ class CartItemsService implements CartItemsServicePort {
     return {
       cartItemId: newCartItem.cartItemId,
       quantity: newCartItem.quantity,
+      isSelected: newCartItem.isSelected,
       product,
     };
   }
