@@ -5,6 +5,7 @@ export const createCartItemsRouter = (cartItemsController: CartItemsController) 
   const cartItemsRouter = Router();
 
   cartItemsRouter.get('/', cartItemsController.getCartItems);
+  cartItemsRouter.get('/amount', cartItemsController.getCartAmount);
   cartItemsRouter.post('/', cartItemsController.postCartItems);
   cartItemsRouter.patch('/:cartItemId', cartItemsController.patchCartItems);
   cartItemsRouter.delete('/:cartItemId', cartItemsController.deleteCartItems);

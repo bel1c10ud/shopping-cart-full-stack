@@ -7,6 +7,7 @@ import {
   ProductNotFoundError,
 } from '../errors';
 import { InsertCartItemSchema, UpdateCartItemSchema } from '../schemas';
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../constants';
 
 class CartItemsService implements CartItemsServicePort {
   private readonly productsRepository;
@@ -39,6 +40,18 @@ class CartItemsService implements CartItemsServicePort {
         product,
       };
     });
+  }
+
+  async getCartAmount() {
+    const cartItems = await this.getCartItems();
+    const selectedItems = cartItems.filter((item) => item.isSelected);
+
+    const orderAmount = selectedItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    const shippingAmount = orderAmount === 0 || orderAmount >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+    const discountAmount = 0;
+    const totalAmount = orderAmount + shippingAmount - discountAmount;
+
+    return { orderAmount, shippingAmount, discountAmount, totalAmount };
   }
 
   async insertCartItem(cartItem: { productId: CartItem['productId']; quantity: CartItem['quantity'] }) {

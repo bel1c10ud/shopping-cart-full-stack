@@ -24,6 +24,16 @@ class CartItemsController {
     }
   };
 
+  getCartAmount = async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      const amount = await this.service.getCartAmount();
+
+      res.status(200).json({ status: 'success', data: amount });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   postCartItems = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parsedBody = InsertCartItemBodySchema.parse(req.body);

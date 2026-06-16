@@ -32,6 +32,13 @@ export interface CartItemWithProduct extends Omit<CartItem, 'productId'> {
   product: Product;
 }
 
+export interface AmountSummary {
+  orderAmount: number;
+  shippingAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+}
+
 export interface ProductsServicePort {
   getProducts(): Promise<Product[]>;
   insertProduct(product: Omit<Product, 'productId'>): Promise<Product>;
@@ -40,6 +47,7 @@ export interface ProductsServicePort {
 
 export interface CartItemsServicePort {
   getCartItems(): Promise<CartItemWithProduct[]>;
+  getCartAmount(): Promise<AmountSummary>;
   insertCartItem(cartItem: Omit<CartItem, 'cartItemId' | 'isSelected'>): Promise<CartItemWithProduct>;
   patchCartItem(
     cartItemId: CartItem['cartItemId'],
