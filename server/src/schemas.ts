@@ -117,6 +117,19 @@ export const GetOrderRequestParamsSchema = z.object({
   orderId: OrderIdParamsSchema,
 });
 
+const OrderItemRequestSchema = z.object({
+  productId: ProductIdSchema,
+  quantity: QuantitySchema,
+});
+
+export const InsertOrderRequestBodySchema = z.object({
+  items: z.array(OrderItemRequestSchema, {
+    error: '주문 상품은 1개 이상이어야 합니다.',
+  }).min(1, {
+    error: '주문 상품은 1개 이상이어야 합니다.',
+  }),
+});
+
 export const ProductSchema = z.object({
   name: ProductNameSchema,
   price: ProductPriceSchema,

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { OrdersServicePort } from '../types';
-import { GetOrderRequestParamsSchema } from '../schemas';
+import { GetOrderRequestParamsSchema, InsertOrderRequestBodySchema } from '../schemas';
 
 class OrdersController {
   private readonly service;
@@ -15,6 +15,17 @@ class OrdersController {
       const order = await this.service.getOrderById(parsedParams.orderId);
 
       res.status(200).json({ status: 'success', data: order });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  postOrder = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parsedBody = InsertOrderRequestBodySchema.parse(req.body);
+      const order = await this.service.insertOrder(parsedBody.items);
+
+      res.status(201).json({ status: 'success', data: order });
     } catch (error) {
       next(error);
     }

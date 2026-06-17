@@ -10,7 +10,7 @@ import {
 const errorHandler = (error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (error instanceof z.ZodError) {
     const data = error.issues.reduce<Record<string, string>>((acc, issue) => {
-      const key = issue.path[0];
+      const key = [...issue.path].reverse().find((path) => typeof path === 'string');
 
       if (typeof key === 'string' && acc[key] === undefined) {
         acc[key] = issue.message;

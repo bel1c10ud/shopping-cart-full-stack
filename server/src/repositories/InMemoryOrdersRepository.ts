@@ -28,6 +28,23 @@ class InMemoryProductsRepository implements OrdersRepository {
   async getById(orderId: Order['orderId']) {
     return this.store.get(orderId);
   }
+
+  private generateUniqueId(): string {
+    const id = crypto.randomUUID();
+
+    return this.store.has(id) ? this.generateUniqueId() : id;
+  }
+
+  async insert(order: Omit<Order, 'orderId'>) {
+    const orderObj = {
+      orderId: this.generateUniqueId(),
+      ...order,
+    };
+
+    this.store.set(orderObj.orderId, orderObj);
+
+    return orderObj;
+  }
 }
 
 export default InMemoryProductsRepository;

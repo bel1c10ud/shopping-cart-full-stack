@@ -1,6 +1,6 @@
 import { OrderNotFoundError, ProductNotFoundError } from '../errors';
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../constants';
-import { Order, OrderWithProduct, OrdersRepository, OrdersServicePort, ProductsRepository } from '../types';
+import { Order, OrderItem, OrderWithProduct, OrdersRepository, OrdersServicePort, ProductsRepository } from '../types';
 
 class OrdersService implements OrdersServicePort {
   private readonly ordersRepository;
@@ -36,6 +36,25 @@ class OrdersService implements OrdersServicePort {
       items,
       amount: this.calculateAmount(items),
     };
+  }
+
+  async insertOrder(items: OrderItem[]) {
+    const products = await this.productsRepository.getAll();
+
+    items.forEach((item) => {
+      const product = products.find((product) => product.productId === item.productId);
+
+      if (!product) throw new ProductNotFoundError(item.productId);
+    });
+
+    const order = await this.ordersRepository.insert({
+      status: 'PENDING',
+      isRemoteArea: false,
+      items,
+      couponIds: [],
+    });
+
+    return await this.getOrderById(order.orderId);
   }
 
   private calculateAmount(items: OrderWithProduct['items']) {
