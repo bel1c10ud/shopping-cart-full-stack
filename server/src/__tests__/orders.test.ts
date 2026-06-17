@@ -1,6 +1,6 @@
 import request from 'supertest';
 import app from '../app';
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../constants';
+import { FREE_SHIPPING_THRESHOLD, REMOTE_AREA_FEE, SHIPPING_FEE } from '../constants';
 import { orders } from '../repositories/InMemoryOrdersRepository';
 import { products } from '../repositories/InMemoryProductsRepository';
 
@@ -144,6 +144,118 @@ describe('주문', () => {
         status: 'fail',
         data: {
           productId: '존재하지 않는 상품입니다.',
+        },
+      });
+    });
+  });
+
+  describe('주문 정보 수정 (PATCH /order/:orderId)', () => {
+    it('도서산간 지역 여부를 수정한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      products.set(product.productId, product);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+
+      const response = await request(app).patch('/order/order-1').send({ isRemoteArea: true }).expect(200);
+
+      expect(response.body).toEqual({
+        status: 'success',
+        data: {
+          orderId: 'order-1',
+          status: 'PENDING',
+          isRemoteArea: true,
+          items: [{ product, quantity: 1 }],
+          couponIds: [],
+          amount: {
+            orderAmount: product.price,
+            shippingAmount: REMOTE_AREA_FEE,
+            discountAmount: 0,
+            totalAmount: product.price + REMOTE_AREA_FEE,
+          },
+        },
+      });
+    });
+
+    it('수정할 주문 정보가 없으면 400 에러가 발생한다', async () => {
+      const response = await request(app).patch('/order/order-1').send({}).expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          body: '수정할 주문 정보는 필수입니다.',
+        },
+      });
+    });
+
+    it('isRemoteArea가 boolean 값이 아니면 400 에러가 발생한다', async () => {
+      const response = await request(app).patch('/order/order-1').send({ isRemoteArea: 'true' }).expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          isRemoteArea: '도서산간 지역 여부는 boolean 값이어야 합니다.',
+        },
+      });
+    });
+
+    it('couponIds가 배열이 아니면 400 에러가 발생한다', async () => {
+      const response = await request(app).patch('/order/order-1').send({ couponIds: 'coupon-1' }).expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponIds: '쿠폰 ID 목록은 배열이어야 합니다.',
+        },
+      });
+    });
+
+    it('존재하지 않는 주문을 수정하면 404 에러가 발생한다', async () => {
+      const response = await request(app).patch('/order/unknown-order').send({ isRemoteArea: true }).expect(404);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          orderId: '존재하지 않는 주문입니다.',
+        },
+      });
+    });
+
+    it('존재하지 않는 쿠폰을 포함하면 404 에러가 발생한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      products.set(product.productId, product);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+
+      const response = await request(app).patch('/order/order-1').send({ couponIds: ['unknown-coupon'] }).expect(404);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponId: '존재하지 않는 쿠폰입니다.',
         },
       });
     });
