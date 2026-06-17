@@ -61,6 +61,8 @@ const ProductIdParamsSchema = z.string();
 
 const CartItemIdParamsSchema = z.string();
 
+const OrderIdParamsSchema = z.string();
+
 const QuantityRequestSchema = z.number({
   error: resolveFieldError({
     required: '수량은 필수입니다.',
@@ -110,6 +112,10 @@ export const UpdateCartItemRequestBodySchema = CartItemRequestSchema.omit({ prod
   });
 
 export const DeleteCartItemRequestParamsSchema = UpdateCartItemRequestParamsSchema;
+
+export const GetOrderRequestParamsSchema = z.object({
+  orderId: OrderIdParamsSchema,
+});
 
 export const ProductSchema = z.object({
   name: ProductNameSchema,

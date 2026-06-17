@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as z from 'zod';
 import {
   CartItemNotFoundError,
+  OrderNotFoundError,
   ProductAlreadyInCartError,
   ProductNotFoundError,
 } from '../errors';
@@ -34,6 +35,14 @@ const errorHandler = (error: unknown, _req: Request, res: Response, _next: NextF
     res.status(404).json({
       status: 'fail',
       data: { cartItemId: '존재하지 않는 장바구니 항목입니다.' },
+    });
+    return;
+  }
+
+  if (error instanceof OrderNotFoundError) {
+    res.status(404).json({
+      status: 'fail',
+      data: { orderId: '존재하지 않는 주문입니다.' },
     });
     return;
   }

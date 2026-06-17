@@ -13,6 +13,19 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface OrderItem {
+  productId: Product['productId'];
+  quantity: number;
+}
+
+export interface Order {
+  orderId: string;
+  status: 'PENDING' | 'PAID';
+  isRemoteArea: boolean;
+  items: OrderItem[];
+  couponIds: string[];
+}
+
 export interface ProductsRepository {
   getAll(): Promise<Product[]>;
   insert(product: Omit<Product, 'productId'>): Promise<Product>;
@@ -28,8 +41,17 @@ export interface CartItemsRepository {
   deleteById(cartItemId: CartItem['cartItemId']): Promise<Pick<CartItem, 'cartItemId'> | null>;
 }
 
+export interface OrdersRepository {
+  getById(orderId: Order['orderId']): Promise<Order | undefined>;
+}
+
 export interface CartItemWithProduct extends Omit<CartItem, 'productId'> {
   product: Product;
+}
+
+export interface OrderWithProduct extends Omit<Order, 'items'> {
+  items: { product: Product; quantity: OrderItem['quantity'] }[];
+  amount: AmountSummary;
 }
 
 export interface AmountSummary {
@@ -54,4 +76,8 @@ export interface CartItemsServicePort {
     cartItemPartial: Partial<Omit<CartItem, 'productId' | 'cartItemId'>>,
   ): Promise<CartItemWithProduct>;
   deleteCartItem(cartItemId: CartItem['cartItemId']): Promise<Pick<CartItem, 'cartItemId'>>;
+}
+
+export interface OrdersServicePort {
+  getOrderById(orderId: Order['orderId']): Promise<OrderWithProduct>;
 }

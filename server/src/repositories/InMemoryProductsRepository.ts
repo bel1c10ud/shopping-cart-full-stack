@@ -1,6 +1,17 @@
 import { Product, ProductsRepository } from './../types';
 
-export const products = new Map<string, Product>();
+export const products = new Map<string, Product>([
+  [
+    'p1',
+    {
+      productId: 'p1',
+      name: '상품명',
+      price: 10000,
+      image: 'https://example.com/product.png',
+      stock: 5,
+    },
+  ],
+]);
 
 class InMemoryProductsRepository implements ProductsRepository {
   store;

@@ -1,6 +1,16 @@
 import { CartItem, CartItemsRepository } from './../types';
 
-export const cartItems = new Map<string, CartItem>();
+export const cartItems = new Map<string, CartItem>([
+  [
+    'ci1',
+    {
+      cartItemId: 'ci1',
+      isSelected: true,
+      productId: 'p1',
+      quantity: 5,
+    },
+  ],
+]);
 
 class InMemoryCartItemsRepository implements CartItemsRepository {
   store;
