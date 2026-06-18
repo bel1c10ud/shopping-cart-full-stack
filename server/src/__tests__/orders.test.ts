@@ -211,7 +211,7 @@ describe('주문', () => {
     });
 
     it('couponIds가 배열이 아니면 400 에러가 발생한다', async () => {
-      const response = await request(app).patch('/order/order-1').send({ couponIds: 'coupon-1' }).expect(400);
+      const response = await request(app).patch('/order/order-1').send({ couponIds: 'user-coupon-1' }).expect(400);
 
       expect(response.body).toEqual({
         status: 'fail',
@@ -250,7 +250,10 @@ describe('주문', () => {
         couponIds: [],
       });
 
-      const response = await request(app).patch('/order/order-1').send({ couponIds: ['unknown-coupon'] }).expect(404);
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['unknown-coupon'] })
+        .expect(404);
 
       expect(response.body).toEqual({
         status: 'fail',

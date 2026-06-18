@@ -166,7 +166,7 @@
 | `status`       | `string`              | ✓    | 주문 상태                      | `PENDING`, `PAID` |
 | `isRemoteArea` | `boolean`             | ✓    | 도서산간 지역 여부             |                  |
 | `items`        | `OrderItemResponse[]` | ✓    | 주문 상품 목록                 |                  |
-| `couponIds`    | `string[]`            | ✓    | 주문에 적용된 쿠폰 식별자 목록 |                  |
+| `couponIds`    | `string[]`            | ✓    | 주문에 적용된 사용자 쿠폰 식별자 목록 |                  |
 | `amount`       | `AmountSummary`       | ✓    | 결제 금액 정보                 |                  |
 
 ```json
@@ -186,7 +186,7 @@
       "quantity": 1
     }
   ],
-  "couponIds": ["string"],
+  "couponIds": ["user-coupon-1"],
   "amount": {
     "orderAmount": 10000,
     "shippingAmount": 3000,
@@ -858,7 +858,7 @@ GET /order/:orderId
 ### 주문 쿠폰 목록 조회
 
 > 현재 시안상 쿠폰 정보는 쿠폰 적용 모달이 표시되기 전까지 사용되지 않으므로 별도의 API로 분리한다.
-> `GET /order/:orderId`는 현재 적용된 쿠폰 식별자 목록을 반환하고, 이 API는 쿠폰 변경을 위해 선택 가능한 쿠폰 후보와 사용 가능 여부를 반환한다.
+> `GET /order/:orderId`는 현재 적용된 사용자 쿠폰 식별자 목록을 반환하고, 이 API는 쿠폰 변경을 위해 선택 가능한 쿠폰 후보와 사용 가능 여부를 반환한다.
 
 ```
 GET /order/:orderId/coupons
@@ -939,10 +939,10 @@ GET /order/:orderId/amount
 | 파라미터       | 타입      | 설명                                    |
 | -------------- | --------- | --------------------------------------- |
 | `isRemoteArea` | `boolean` | 도서산간 여부                           |
-| `couponIds`    | `string`  | 적용할 쿠폰 고유 식별자 목록 (`,` 구분) |
+| `couponIds`    | `string`  | 적용할 사용자 쿠폰 식별자 목록 (`,` 구분) |
 
 ```http
-GET /order/order-1/amount?couponIds=coupon-1,coupon-2&isRemoteArea=true
+GET /order/order-1/amount?couponIds=user-coupon-1,user-coupon-2&isRemoteArea=true
 ```
 
 #### 응답
@@ -1003,8 +1003,8 @@ GET /order/order-1/amount?couponIds=coupon-1,coupon-2&isRemoteArea=true
 | 필드           | 조건                       | 에러 메시지                                |
 | -------------- | -------------------------- | ------------------------------------------ |
 | `couponIds`    | 쉼표 구분 문자열 형식 아님 | `쿠폰 ID 목록 형식이 올바르지 않습니다.`   |
-| `couponIds`    | 존재하지 않는 쿠폰 포함    | `존재하지 않는 쿠폰입니다.`                |
-| `couponIds`    | 사용할 수 없는 쿠폰 포함   | `사용할 수 없는 쿠폰입니다.`               |
+| `couponIds`    | 존재하지 않는 사용자 쿠폰 포함 | `존재하지 않는 쿠폰입니다.`                |
+| `couponIds`    | 사용할 수 없는 사용자 쿠폰 포함 | `사용할 수 없는 쿠폰입니다.`               |
 | `isRemoteArea` | boolean이 아닌 경우        | `도서산간 여부는 boolean 값이어야 합니다.` |
 
 ---
@@ -1034,10 +1034,10 @@ Content-Type: application/json
 | 필드           | 타입       | 필수 | 설명                    |
 | -------------- | ---------- | ---- | ----------------------- |
 | `isRemoteArea` | `boolean`  |      | 도서산간 지역 여부      |
-| `couponIds`    | `string[]` |      | 적용할 쿠폰 식별자 목록 |
+| `couponIds`    | `string[]` |      | 적용할 사용자 쿠폰 식별자 목록 |
 
 > `isRemoteArea`, `couponIds` 중 하나 이상을 포함해야 한다.
-> `couponIds`는 존재하고 현재 주문에 사용할 수 있는 쿠폰만 포함할 수 있다.
+> `couponIds`는 사용자 쿠폰 식별자 목록이며, 존재하고 현재 주문에 사용할 수 있는 사용자 쿠폰만 포함할 수 있다.
 
 #### 응답
 
@@ -1069,7 +1069,7 @@ Content-Type: application/json
         "quantity": 1
       }
     ],
-    "couponIds": ["coupon-1"],
+    "couponIds": ["user-coupon-1"],
     "amount": {
       "orderAmount": 100000,
       "shippingAmount": 5000,
@@ -1118,5 +1118,5 @@ Content-Type: application/json
 | `body`         | `isRemoteArea`, `couponIds` 모두 누락 | `수정할 주문 정보는 필수입니다.`                |
 | `isRemoteArea` | boolean이 아닌 경우                   | `도서산간 지역 여부는 boolean 값이어야 합니다.` |
 | `couponIds`    | 배열이 아닌 경우                      | `쿠폰 ID 목록은 배열이어야 합니다.`             |
-| `couponIds`    | 존재하지 않는 쿠폰 포함               | `존재하지 않는 쿠폰입니다.`                     |
-| `couponIds`    | 사용할 수 없는 쿠폰 포함              | `사용할 수 없는 쿠폰입니다.`                    |
+| `couponIds`    | 존재하지 않는 사용자 쿠폰 포함        | `존재하지 않는 쿠폰입니다.`                     |
+| `couponIds`    | 사용할 수 없는 사용자 쿠폰 포함       | `사용할 수 없는 쿠폰입니다.`                    |
