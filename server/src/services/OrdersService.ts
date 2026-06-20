@@ -1,10 +1,12 @@
-import { OrderNotFoundError, ProductNotFoundError } from '../errors';
+import { CouponUnavailableError, OrderNotFoundError, ProductNotFoundError } from '../errors';
 import CouponValidator from '../domain/CouponValidator';
 import OrderAmountCalculator from '../domain/OrderAmountCalculator';
 import { toOrderItemsWithProducts } from '../mappers/orderMapper';
 import {
   CouponsRepository,
+  Coupon,
   Order,
+  OrderCoupon,
   OrderItem,
   OrdersRepository,
   OrdersServicePort,
@@ -124,6 +126,59 @@ class OrdersService implements OrdersServicePort {
       issuedCoupons: userCoupons,
       coupons,
     });
+  }
+
+  async getOrderCoupons(orderId: Order['orderId']): Promise<OrderCoupon[]> {
+    const order = await this.ordersRepository.getById(orderId);
+
+    if (!order) throw new OrderNotFoundError(orderId);
+
+    const products = await this.productsRepository.getAll();
+    const coupons = await this.couponsRepository.getCoupons();
+    const userCoupons = await this.couponsRepository.getUserCoupons();
+
+    return coupons.map((coupon) => ({
+      couponId: coupon.couponId,
+      isDisabled: this.isDisabledCoupon({ coupon, order, products, userCoupons }),
+      name: coupon.name,
+      dueDate: coupon.expiresAt,
+      minOrderAmount: coupon.minOrderAmount,
+      availableTime: {
+        startTime: coupon.availableTimeStart,
+        endTime: coupon.availableTimeEnd,
+      },
+    }));
+  }
+
+  private isDisabledCoupon({
+    coupon,
+    order,
+    products,
+    userCoupons,
+  }: {
+    coupon: Coupon;
+    order: Order;
+    products: Awaited<ReturnType<ProductsRepository['getAll']>>;
+    userCoupons: Awaited<ReturnType<CouponsRepository['getUserCoupons']>>;
+  }) {
+    const userCoupon = userCoupons.find((userCoupon) => userCoupon.couponId === coupon.couponId);
+
+    if (!userCoupon) return true;
+
+    try {
+      this.couponValidator.validate({
+        order: { ...order, couponIds: [userCoupon.userCouponId] },
+        products,
+        issuedCoupons: [userCoupon],
+        coupons: [coupon],
+      });
+
+      return false;
+    } catch (error) {
+      if (error instanceof CouponUnavailableError) return true;
+
+      throw error;
+    }
   }
 }
 

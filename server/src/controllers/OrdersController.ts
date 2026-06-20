@@ -50,6 +50,17 @@ class OrdersController {
     }
   };
 
+  getOrderCoupons = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parsedParams = GetOrderRequestParamsSchema.parse(req.params);
+      const coupons = await this.service.getOrderCoupons(parsedParams.orderId);
+
+      res.status(200).json({ status: 'success', data: coupons });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   patchOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parsedParams = UpdateOrderRequestParamsSchema.parse(req.params);

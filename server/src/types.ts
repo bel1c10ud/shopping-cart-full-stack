@@ -102,6 +102,18 @@ export interface AmountSummary {
   totalAmount: number;
 }
 
+export interface OrderCoupon {
+  couponId: Coupon['couponId'];
+  isDisabled: boolean;
+  name: Coupon['name'];
+  dueDate: Coupon['expiresAt'];
+  minOrderAmount: Coupon['minOrderAmount'];
+  availableTime: {
+    startTime: Coupon['availableTimeStart'];
+    endTime: Coupon['availableTimeEnd'];
+  };
+}
+
 export interface ProductsServicePort {
   getProducts(): Promise<Product[]>;
   insertProduct(product: Omit<Product, 'productId'>): Promise<Product>;
@@ -122,6 +134,7 @@ export interface CartItemsServicePort {
 export interface OrdersServicePort {
   getOrderById(orderId: Order['orderId']): Promise<OrderWithProduct>;
   insertOrder(items: OrderItem[]): Promise<OrderWithProduct>;
+  getOrderCoupons(orderId: Order['orderId']): Promise<OrderCoupon[]>;
   getOrderAmount(
     orderId: Order['orderId'],
     orderPartial: Partial<Pick<Order, 'isRemoteArea' | 'couponIds'>>,
