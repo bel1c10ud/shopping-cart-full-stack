@@ -13,6 +13,7 @@ import InMemoryOrdersRepository from './repositories/InMemoryOrdersRepository';
 import OrdersService from './services/OrdersService';
 import OrdersController from './controllers/OrdersController';
 import { createOrdersRouter } from './routes/ordersRoute';
+import InMemoryCouponsRepository from './repositories/InMemoryCouponsRepository';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(express.json());
 const inMemoryProductsRepository = new InMemoryProductsRepository();
 const inMemoryCartItemsRepository = new InMemoryCartItemsRepository();
 const inMemoryOrdersRepository = new InMemoryOrdersRepository();
+const inMemoryCouponsRepository = new InMemoryCouponsRepository();
 
 const productsService = new ProductsService({
   productsRepository: inMemoryProductsRepository,
@@ -36,6 +38,7 @@ const cartItemsService = new CartItemsService({
 const ordersService = new OrdersService({
   productsRepository: inMemoryProductsRepository,
   ordersRepository: inMemoryOrdersRepository,
+  couponsRepository: inMemoryCouponsRepository,
 });
 
 const productsController = new ProductsController({ service: productsService });

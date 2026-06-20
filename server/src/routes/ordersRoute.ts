@@ -6,6 +6,7 @@ export const createOrdersRouter = (ordersController: OrdersController) => {
 
   productRouter.post('/', ordersController.postOrder);
   productRouter.get('/:orderId', ordersController.getOrderById);
+  productRouter.patch('/:orderId', ordersController.patchOrder);
 
   return productRouter;
 };

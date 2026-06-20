@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../app';
 import { FREE_SHIPPING_THRESHOLD, REMOTE_AREA_FEE, SHIPPING_FEE } from '../constants';
+import { couponStore } from '../repositories/InMemoryCouponsRepository';
 import { orders } from '../repositories/InMemoryOrdersRepository';
 import { products } from '../repositories/InMemoryProductsRepository';
 
@@ -8,10 +9,17 @@ describe('주문', () => {
   beforeEach(() => {
     products.clear();
     orders.clear();
+    couponStore.coupons.delete('cp5');
+    couponStore.coupons.delete('expired-coupon');
+    couponStore.userCoupons.delete('ucp5');
+    couponStore.userCoupons.delete('expired-user-coupon');
+    couponStore.userCoupons.forEach((userCoupon, userCouponId) => {
+      couponStore.userCoupons.set(userCouponId, { ...userCoupon, usedAt: null, usedOrderId: null });
+    });
   });
 
   describe('주문 정보 조회 (GET /order/:orderId)', () => {
-    it('주문 상품 정보, 도서산간 지역 여부, 쿠폰 식별자 목록, 결제 금액 정보를 조회한다', async () => {
+    it('주문 상품 정보, 도서산간 지역 여부, 사용자 쿠폰 식별자 목록, 결제 금액 정보를 조회한다', async () => {
       const product = {
         productId: 'product-1',
         name: '상품명',
@@ -261,6 +269,454 @@ describe('주문', () => {
           couponId: '존재하지 않는 쿠폰입니다.',
         },
       });
+    });
+
+    it('주문에 적용 가능한 정액 쿠폰의 할인 금액을 반영한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      products.set(product.productId, product);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['ucp1'] })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        status: 'success',
+        data: expect.objectContaining({
+          couponIds: ['ucp1'],
+          amount: {
+            orderAmount: product.price,
+            shippingAmount: 0,
+            discountAmount: 5000,
+            totalAmount: product.price - 5000,
+          },
+        }),
+      });
+    });
+
+    it('주문에 적용 가능한 무료 배송 쿠폰의 할인 금액을 반영한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD - 1,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      products.set(product.productId, product);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['ucp3'] })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        status: 'success',
+        data: expect.objectContaining({
+          couponIds: ['ucp3'],
+          amount: {
+            orderAmount: product.price,
+            shippingAmount: SHIPPING_FEE,
+            discountAmount: SHIPPING_FEE,
+            totalAmount: product.price,
+          },
+        }),
+      });
+    });
+
+    it('2+1 쿠폰은 동일 상품을 3개 이상 주문하면 단가가 가장 높은 상품 금액을 할인한다', async () => {
+      const cheapProduct = {
+        productId: 'cheap-product',
+        name: '저가 상품',
+        price: 10000,
+        image: 'https://example.com/cheap-product.png',
+        stock: 5,
+      };
+      const expensiveProduct = {
+        productId: 'expensive-product',
+        name: '고가 상품',
+        price: 20000,
+        image: 'https://example.com/expensive-product.png',
+        stock: 5,
+      };
+
+      products.set(cheapProduct.productId, cheapProduct);
+      products.set(expensiveProduct.productId, expensiveProduct);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [
+          { productId: cheapProduct.productId, quantity: 3 },
+          { productId: expensiveProduct.productId, quantity: 3 },
+        ],
+        couponIds: [],
+      });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['ucp2'] })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        status: 'success',
+        data: expect.objectContaining({
+          couponIds: ['ucp2'],
+          amount: {
+            orderAmount: 90000,
+            shippingAmount: SHIPPING_FEE,
+            discountAmount: expensiveProduct.price,
+            totalAmount: 90000 + SHIPPING_FEE - expensiveProduct.price,
+          },
+        }),
+      });
+    });
+
+    it('2+1 쿠폰은 동일 상품을 3개 이상 주문하지 않으면 적용할 수 없다', async () => {
+      const firstProduct = {
+        productId: 'product-1',
+        name: '상품1',
+        price: 10000,
+        image: 'https://example.com/product-1.png',
+        stock: 5,
+      };
+      const secondProduct = {
+        productId: 'product-2',
+        name: '상품2',
+        price: 20000,
+        image: 'https://example.com/product-2.png',
+        stock: 5,
+      };
+      const thirdProduct = {
+        productId: 'product-3',
+        name: '상품3',
+        price: 30000,
+        image: 'https://example.com/product-3.png',
+        stock: 5,
+      };
+
+      products.set(firstProduct.productId, firstProduct);
+      products.set(secondProduct.productId, secondProduct);
+      products.set(thirdProduct.productId, thirdProduct);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [
+          { productId: firstProduct.productId, quantity: 1 },
+          { productId: secondProduct.productId, quantity: 1 },
+          { productId: thirdProduct.productId, quantity: 1 },
+        ],
+        couponIds: [],
+      });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['ucp2'] })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponId: '사용할 수 없는 쿠폰입니다.',
+        },
+      });
+    });
+
+    it('정액 쿠폰을 먼저 적용하고 할인된 금액에서 정률 쿠폰을 적용한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      products.set(product.productId, product);
+      couponStore.coupons.set('cp5', {
+        couponId: 'cp5',
+        couponType: 'PERCENT',
+        code: 'PERCENT10',
+        name: '10% 할인 쿠폰',
+        expiresAt: '2026-12-31',
+        minOrderAmount: null,
+        minItemCount: null,
+        orderAmountDiscountType: 'PERCENT',
+        orderAmountDiscountValue: 10,
+        shippingFeeDiscountType: 'NONE',
+        shippingFeeDiscountValue: null,
+        remoteAreaFeeDiscountType: 'NONE',
+        remoteAreaFeeDiscountValue: null,
+        itemDiscountType: 'NONE',
+        itemDiscountValue: null,
+        availableTimeStart: null,
+        availableTimeEnd: null,
+      });
+      couponStore.userCoupons.set('ucp5', {
+        userCouponId: 'ucp5',
+        couponId: 'cp5',
+        issuedAt: '2026-06-18',
+        usedAt: null,
+        usedOrderId: null,
+      });
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['ucp1', 'ucp5'] })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        status: 'success',
+        data: expect.objectContaining({
+          couponIds: ['ucp1', 'ucp5'],
+          amount: {
+            orderAmount: product.price,
+            shippingAmount: 0,
+            discountAmount: 14500,
+            totalAmount: 85500,
+          },
+        }),
+      });
+    });
+
+    it('최소 주문 금액을 만족하지 못하는 쿠폰은 적용할 수 없다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD - 1,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      products.set(product.productId, product);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['ucp1'] })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponId: '사용할 수 없는 쿠폰입니다.',
+        },
+      });
+    });
+
+    it('이미 사용된 쿠폰은 적용할 수 없다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+      const userCoupon = couponStore.userCoupons.get('ucp1');
+
+      products.set(product.productId, product);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+      if (userCoupon) couponStore.userCoupons.set('ucp1', { ...userCoupon, usedAt: '2026-06-18' });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['ucp1'] })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponId: '사용할 수 없는 쿠폰입니다.',
+        },
+      });
+    });
+
+    it('만료된 쿠폰은 적용할 수 없다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      products.set(product.productId, product);
+      couponStore.coupons.set('expired-coupon', {
+        couponId: 'expired-coupon',
+        couponType: 'AMOUNT',
+        code: 'EXPIRED',
+        name: '만료된 쿠폰',
+        expiresAt: '2000-01-01',
+        minOrderAmount: null,
+        minItemCount: null,
+        orderAmountDiscountType: 'AMOUNT',
+        orderAmountDiscountValue: 1000,
+        shippingFeeDiscountType: 'NONE',
+        shippingFeeDiscountValue: null,
+        remoteAreaFeeDiscountType: 'NONE',
+        remoteAreaFeeDiscountValue: null,
+        itemDiscountType: 'NONE',
+        itemDiscountValue: null,
+        availableTimeStart: null,
+        availableTimeEnd: null,
+      });
+      couponStore.userCoupons.set('expired-user-coupon', {
+        userCouponId: 'expired-user-coupon',
+        couponId: 'expired-coupon',
+        issuedAt: '1999-12-31',
+        usedAt: null,
+        usedOrderId: null,
+      });
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['expired-user-coupon'] })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponId: '사용할 수 없는 쿠폰입니다.',
+        },
+      });
+    });
+
+    it('정액 쿠폰은 최대 1개만 적용할 수 있다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      products.set(product.productId, product);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 3 }],
+        couponIds: [],
+      });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['ucp1', 'ucp2'] })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponId: '사용할 수 없는 쿠폰입니다.',
+        },
+      });
+    });
+
+    it('정률 쿠폰은 최대 1개만 적용할 수 있다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      products.set(product.productId, product);
+      couponStore.coupons.set('cp5', {
+        couponId: 'cp5',
+        couponType: 'PERCENT',
+        code: 'PERCENT10',
+        name: '10% 할인 쿠폰',
+        expiresAt: '2026-12-31',
+        minOrderAmount: null,
+        minItemCount: null,
+        orderAmountDiscountType: 'PERCENT',
+        orderAmountDiscountValue: 10,
+        shippingFeeDiscountType: 'NONE',
+        shippingFeeDiscountValue: null,
+        remoteAreaFeeDiscountType: 'NONE',
+        remoteAreaFeeDiscountValue: null,
+        itemDiscountType: 'NONE',
+        itemDiscountValue: null,
+        availableTimeStart: null,
+        availableTimeEnd: null,
+      });
+      couponStore.userCoupons.set('ucp5', {
+        userCouponId: 'ucp5',
+        couponId: 'cp5',
+        issuedAt: '2026-06-18',
+        usedAt: null,
+        usedOrderId: null,
+      });
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+
+      const response = await request(app)
+        .patch('/order/order-1')
+        .send({ couponIds: ['ucp4', 'ucp5'] })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponId: '사용할 수 없는 쿠폰입니다.',
+        },
+      });
+
+      couponStore.coupons.delete('cp5');
+      couponStore.userCoupons.delete('ucp5');
     });
   });
 });

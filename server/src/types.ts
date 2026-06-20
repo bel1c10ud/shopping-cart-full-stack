@@ -13,6 +13,40 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface Coupon {
+  couponId: string;
+  couponType: 'AMOUNT' | 'PERCENT';
+  code: string;
+  name: string;
+  expiresAt: string;
+
+  minOrderAmount: number | null;
+  minItemCount: number | null;
+
+  orderAmountDiscountType: 'NONE' | 'AMOUNT' | 'PERCENT';
+  orderAmountDiscountValue: number | null;
+
+  shippingFeeDiscountType: 'NONE' | 'FREE' | 'AMOUNT';
+  shippingFeeDiscountValue: number | null;
+
+  remoteAreaFeeDiscountType: 'NONE' | 'FREE' | 'AMOUNT';
+  remoteAreaFeeDiscountValue: number | null;
+
+  itemDiscountType: 'NONE' | 'FREE_COUNT';
+  itemDiscountValue: number | null;
+
+  availableTimeStart: string | null;
+  availableTimeEnd: string | null;
+}
+
+export interface UserCoupon {
+  userCouponId: string;
+  couponId: string;
+  issuedAt: string;
+  usedAt: string | null;
+  usedOrderId: string | null;
+}
+
 export interface OrderItem {
   productId: Product['productId'];
   quantity: number;
@@ -23,7 +57,7 @@ export interface Order {
   status: 'PENDING' | 'PAID';
   isRemoteArea: boolean;
   items: OrderItem[];
-  couponIds: string[];
+  couponIds: UserCoupon['userCouponId'][];
 }
 
 export interface ProductsRepository {
@@ -41,8 +75,15 @@ export interface CartItemsRepository {
   deleteById(cartItemId: CartItem['cartItemId']): Promise<Pick<CartItem, 'cartItemId'> | null>;
 }
 
+export interface CouponsRepository {
+  getCoupons(): Promise<Coupon[]>;
+  getUserCoupons(): Promise<UserCoupon[]>;
+}
+
 export interface OrdersRepository {
   getById(orderId: Order['orderId']): Promise<Order | undefined>;
+  insert(order: Omit<Order, 'orderId'>): Promise<Order>;
+  updateById(orderId: Order['orderId'], order: Order): Promise<Order | undefined>;
 }
 
 export interface CartItemWithProduct extends Omit<CartItem, 'productId'> {
@@ -80,4 +121,9 @@ export interface CartItemsServicePort {
 
 export interface OrdersServicePort {
   getOrderById(orderId: Order['orderId']): Promise<OrderWithProduct>;
+  insertOrder(items: OrderItem[]): Promise<OrderWithProduct>;
+  patchOrder(
+    orderId: Order['orderId'],
+    orderPartial: Partial<Pick<Order, 'isRemoteArea' | 'couponIds'>>,
+  ): Promise<OrderWithProduct>;
 }

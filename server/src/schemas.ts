@@ -9,6 +9,10 @@ const ProductIsSelectedSchema = z.boolean({
   error: '선택 여부는 boolean 값이어야 합니다.',
 });
 
+const OrderRemoteAreaSchema = z.boolean({
+  error: '도서산간 지역 여부는 boolean 값이어야 합니다.',
+});
+
 const ProductNameRequestSchema = z.string({
   error: '상품명은 필수입니다.',
 });
@@ -79,6 +83,9 @@ const QuantitySchema = QuantityRequestSchema.int({
 const hasCartItemUpdateField = (body: { quantity?: number; isSelected?: boolean }) =>
   body.quantity !== undefined || body.isSelected !== undefined;
 
+const hasOrderUpdateField = (body: { isRemoteArea?: boolean; couponIds?: string[] }) =>
+  body.isRemoteArea !== undefined || body.couponIds !== undefined;
+
 const ProductRequestSchema = z.object({
   name: ProductNameRequestSchema,
   price: ProductPriceRequestSchema,
@@ -129,6 +136,22 @@ export const InsertOrderRequestBodySchema = z.object({
     error: '주문 상품은 1개 이상이어야 합니다.',
   }),
 });
+
+export const UpdateOrderRequestParamsSchema = GetOrderRequestParamsSchema;
+
+export const UpdateOrderRequestBodySchema = z
+  .object({
+    isRemoteArea: OrderRemoteAreaSchema.optional(),
+    couponIds: z
+      .array(z.string(), {
+        error: '쿠폰 ID 목록은 배열이어야 합니다.',
+      })
+      .optional(),
+  })
+  .refine(hasOrderUpdateField, {
+    message: '수정할 주문 정보는 필수입니다.',
+    path: ['body'],
+  });
 
 export const ProductSchema = z.object({
   name: ProductNameSchema,

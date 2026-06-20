@@ -8,6 +8,7 @@ import {
 } from '../errors';
 import { InsertCartItemSchema, UpdateCartItemSchema } from '../schemas';
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../constants';
+import { toCartItemsWithProducts, toCartItemWithProduct } from '../mappers/cartItemMapper';
 
 class CartItemsService implements CartItemsServicePort {
   private readonly productsRepository;
@@ -28,18 +29,7 @@ class CartItemsService implements CartItemsServicePort {
     const products = await this.productsRepository.getAll();
     const cartItems = await this.cartItemsRepository.getAll();
 
-    return cartItems.map((item) => {
-      const product = products.find((product) => product.productId === item.productId);
-
-      if (!product) throw new CartItemProductMissingError(item.cartItemId, item.productId);
-
-      return {
-        cartItemId: item.cartItemId,
-        quantity: item.quantity,
-        isSelected: item.isSelected,
-        product,
-      };
-    });
+    return toCartItemsWithProducts(cartItems, products);
   }
 
   async getCartAmount() {
@@ -72,12 +62,7 @@ class CartItemsService implements CartItemsServicePort {
       isSelected: true,
     });
 
-    return {
-      cartItemId: inserted.cartItemId,
-      quantity: inserted.quantity,
-      isSelected: inserted.isSelected,
-      product,
-    };
+    return toCartItemWithProduct(inserted, product);
   }
 
   async patchCartItem(
@@ -101,12 +86,7 @@ class CartItemsService implements CartItemsServicePort {
 
     await this.cartItemsRepository.updateById(cartItemId, newCartItem);
 
-    return {
-      cartItemId: newCartItem.cartItemId,
-      quantity: newCartItem.quantity,
-      isSelected: newCartItem.isSelected,
-      product,
-    };
+    return toCartItemWithProduct(newCartItem, product);
   }
 
   async deleteCartItem(cartItemId: CartItem['cartItemId']) {

@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import * as z from 'zod';
 import {
   CartItemNotFoundError,
+  CouponNotFoundError,
+  CouponUnavailableError,
   OrderNotFoundError,
   ProductAlreadyInCartError,
   ProductNotFoundError,
@@ -47,10 +49,26 @@ const errorHandler = (error: unknown, _req: Request, res: Response, _next: NextF
     return;
   }
 
+  if (error instanceof CouponNotFoundError) {
+    res.status(404).json({
+      status: 'fail',
+      data: { couponId: '존재하지 않는 쿠폰입니다.' },
+    });
+    return;
+  }
+
   if (error instanceof ProductAlreadyInCartError) {
     res.status(400).json({
       status: 'fail',
       data: { productId: '이미 장바구니에 담긴 상품입니다.' },
+    });
+    return;
+  }
+
+  if (error instanceof CouponUnavailableError) {
+    res.status(400).json({
+      status: 'fail',
+      data: { couponId: '사용할 수 없는 쿠폰입니다.' },
     });
     return;
   }

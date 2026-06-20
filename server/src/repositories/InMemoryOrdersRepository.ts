@@ -45,6 +45,12 @@ class InMemoryProductsRepository implements OrdersRepository {
 
     return orderObj;
   }
+
+  async updateById(orderId: Order['orderId'], order: Order) {
+    this.store.set(orderId, order);
+
+    return this.store.get(orderId);
+  }
 }
 
 export default InMemoryProductsRepository;
