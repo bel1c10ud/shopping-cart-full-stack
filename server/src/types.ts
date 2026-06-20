@@ -122,6 +122,10 @@ export interface CartItemsServicePort {
 export interface OrdersServicePort {
   getOrderById(orderId: Order['orderId']): Promise<OrderWithProduct>;
   insertOrder(items: OrderItem[]): Promise<OrderWithProduct>;
+  getOrderAmount(
+    orderId: Order['orderId'],
+    orderPartial: Partial<Pick<Order, 'isRemoteArea' | 'couponIds'>>,
+  ): Promise<AmountSummary>;
   patchOrder(
     orderId: Order['orderId'],
     orderPartial: Partial<Pick<Order, 'isRemoteArea' | 'couponIds'>>,

@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { OrdersServicePort } from '../types';
 import {
+  GetOrderAmountRequestParamsSchema,
+  GetOrderAmountRequestQuerySchema,
   GetOrderRequestParamsSchema,
   InsertOrderRequestBodySchema,
   UpdateOrderRequestBodySchema,
@@ -31,6 +33,18 @@ class OrdersController {
       const order = await this.service.insertOrder(parsedBody.items);
 
       res.status(201).json({ status: 'success', data: order });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getOrderAmount = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parsedParams = GetOrderAmountRequestParamsSchema.parse(req.params);
+      const parsedQuery = GetOrderAmountRequestQuerySchema.parse(req.query);
+      const amount = await this.service.getOrderAmount(parsedParams.orderId, parsedQuery);
+
+      res.status(200).json({ status: 'success', data: amount });
     } catch (error) {
       next(error);
     }

@@ -98,6 +98,33 @@ class OrdersService implements OrdersServicePort {
 
     return await this.getOrderById(orderId);
   }
+
+  async getOrderAmount(orderId: Order['orderId'], orderPartial: Partial<Pick<Order, 'isRemoteArea' | 'couponIds'>>) {
+    const order = await this.ordersRepository.getById(orderId);
+
+    if (!order) throw new OrderNotFoundError(orderId);
+
+    const orderPreview = { ...order, ...orderPartial };
+    const products = await this.productsRepository.getAll();
+    const coupons = await this.couponsRepository.getCoupons();
+    const userCoupons = await this.couponsRepository.getUserCoupons();
+
+    if (orderPartial.couponIds) {
+      this.couponValidator.validate({
+        order: orderPreview,
+        products,
+        issuedCoupons: userCoupons,
+        coupons,
+      });
+    }
+
+    return this.orderAmountCalculator.calculate({
+      order: orderPreview,
+      products,
+      issuedCoupons: userCoupons,
+      coupons,
+    });
+  }
 }
 
 export default OrdersService;

@@ -130,14 +130,41 @@ const OrderItemRequestSchema = z.object({
 });
 
 export const InsertOrderRequestBodySchema = z.object({
-  items: z.array(OrderItemRequestSchema, {
-    error: '주문 상품은 1개 이상이어야 합니다.',
-  }).min(1, {
-    error: '주문 상품은 1개 이상이어야 합니다.',
-  }),
+  items: z
+    .array(OrderItemRequestSchema, {
+      error: '주문 상품은 1개 이상이어야 합니다.',
+    })
+    .min(1, {
+      error: '주문 상품은 1개 이상이어야 합니다.',
+    }),
 });
 
 export const UpdateOrderRequestParamsSchema = GetOrderRequestParamsSchema;
+
+const OrderAmountQueryCouponIdsSchema = z
+  .string({
+    error: '쿠폰 ID 목록 형식이 올바르지 않습니다.',
+  })
+  .transform((couponIdsStr: string) => {
+    if (couponIdsStr.length === 0) return [];
+
+    return couponIdsStr.split(',');
+  })
+  .optional();
+
+const OrderAmountQueryRemoteAreaSchema = z
+  .enum(['true', 'false'], {
+    error: '도서산간 여부는 boolean 값이어야 합니다.',
+  })
+  .transform((value) => value === 'true')
+  .optional();
+
+export const GetOrderAmountRequestParamsSchema = GetOrderRequestParamsSchema;
+
+export const GetOrderAmountRequestQuerySchema = z.object({
+  couponIds: OrderAmountQueryCouponIdsSchema,
+  isRemoteArea: OrderAmountQueryRemoteAreaSchema,
+});
 
 export const UpdateOrderRequestBodySchema = z
   .object({
