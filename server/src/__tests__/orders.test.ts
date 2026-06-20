@@ -4,6 +4,7 @@ import { FREE_SHIPPING_THRESHOLD, REMOTE_AREA_FEE, SHIPPING_FEE } from '../const
 import { couponStore } from '../repositories/InMemoryCouponsRepository';
 import { orders } from '../repositories/InMemoryOrdersRepository';
 import { products } from '../repositories/InMemoryProductsRepository';
+import { Order } from '../types';
 
 describe('주문', () => {
   beforeEach(() => {
@@ -152,6 +153,232 @@ describe('주문', () => {
         status: 'fail',
         data: {
           productId: '존재하지 않는 상품입니다.',
+        },
+      });
+    });
+  });
+
+  describe('주문 금액 조회 (GET /order/:orderId/amount)', () => {
+    it('쿼리 파라미터를 임시 적용한 주문 금액을 조회하고 주문 상태는 변경하지 않는다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      const order = {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      };
+
+      products.set(product.productId, product);
+      orders.set(order.orderId, order as Order);
+
+      const response = await request(app)
+        .get('/order/order-1/amount')
+        .query({ couponIds: 'ucp1', isRemoteArea: 'true' })
+        .expect(200);
+
+      expect(response.body).toEqual({
+        status: 'success',
+        data: {
+          orderAmount: product.price,
+          shippingAmount: REMOTE_AREA_FEE,
+          discountAmount: 5000,
+          totalAmount: product.price + REMOTE_AREA_FEE - 5000,
+        },
+      });
+
+      const orderResponse = await request(app).get('/order/order-1').expect(200);
+
+      expect(orderResponse.body.data).toEqual(
+        expect.objectContaining({
+          isRemoteArea: false,
+          couponIds: [],
+          amount: {
+            orderAmount: product.price,
+            shippingAmount: 0,
+            discountAmount: 0,
+            totalAmount: product.price,
+          },
+        }),
+      );
+    });
+
+    it('쿼리 파라미터가 없으면 저장된 주문 정보 기준으로 주문 금액을 조회한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      const order = {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: true,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: ['ucp1'],
+      };
+
+      products.set(product.productId, product);
+      orders.set(order.orderId, order as Order);
+
+      const response = await request(app).get('/order/order-1/amount').expect(200);
+
+      expect(response.body).toEqual({
+        status: 'success',
+        data: {
+          orderAmount: product.price,
+          shippingAmount: REMOTE_AREA_FEE,
+          discountAmount: 5000,
+          totalAmount: product.price + REMOTE_AREA_FEE - 5000,
+        },
+      });
+    });
+
+    it('isRemoteArea가 boolean 형식이 아니면 400 에러가 발생한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      const order = {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      };
+
+      products.set(product.productId, product);
+      orders.set(order.orderId, order as Order);
+
+      const response = await request(app)
+        .get('/order/order-1/amount')
+        .query({ isRemoteArea: 'not-boolean' })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          isRemoteArea: '도서산간 여부는 boolean 값이어야 합니다.',
+        },
+      });
+    });
+
+    it('couponIds가 쉼표 구분 문자열 형식이 아니면 400 에러가 발생한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      const order = {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      };
+
+      products.set(product.productId, product);
+      orders.set(order.orderId, order as Order);
+
+      const response = await request(app)
+        .get('/order/order-1/amount')
+        .query({ couponIds: ['ucp1', 'ucp2'] })
+        .expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponIds: '쿠폰 ID 목록 형식이 올바르지 않습니다.',
+        },
+      });
+    });
+
+    it('존재하지 않는 주문의 금액을 조회하면 404 에러가 발생한다', async () => {
+      const response = await request(app).get('/order/unknown-order/amount').expect(404);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          orderId: '존재하지 않는 주문입니다.',
+        },
+      });
+    });
+
+    it('존재하지 않는 쿠폰을 포함하면 404 에러가 발생한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      const order = {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      };
+
+      products.set(product.productId, product);
+      orders.set(order.orderId, order as Order);
+
+      const response = await request(app)
+        .get('/order/order-1/amount')
+        .query({ couponIds: 'unknown-coupon' })
+        .expect(404);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponId: '존재하지 않는 쿠폰입니다.',
+        },
+      });
+    });
+
+    it('사용할 수 없는 쿠폰을 포함하면 400 에러가 발생한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD - 1,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      const order = {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      };
+
+      products.set(product.productId, product);
+      orders.set(order.orderId, order as Order);
+
+      const response = await request(app).get('/order/order-1/amount').query({ couponIds: 'ucp1' }).expect(400);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          couponId: '사용할 수 없는 쿠폰입니다.',
         },
       });
     });
