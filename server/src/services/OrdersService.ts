@@ -5,6 +5,7 @@ import { toOrderItemsWithProducts } from '../mappers/orderMapper';
 import {
   CouponsRepository,
   Coupon,
+  CouponRecommendation,
   Order,
   OrderCoupon,
   OrderItem,
@@ -156,6 +157,87 @@ class OrdersService implements OrdersServicePort {
         },
       };
     });
+  }
+
+  async getOrderCouponRecommendation(orderId: Order['orderId']): Promise<CouponRecommendation> {
+    const order = await this.ordersRepository.getById(orderId);
+
+    if (!order) throw new OrderNotFoundError(orderId);
+
+    const products = await this.productsRepository.getAll();
+    const coupons = await this.couponsRepository.getCoupons();
+    const userCoupons = await this.couponsRepository.getUserCoupons();
+    const couponCombinations = this.getCouponCombinations(userCoupons.map((userCoupon) => userCoupon.userCouponId));
+    const recommendedCouponIds = couponCombinations.reduce(
+      (bestCouponIds, couponIds) =>
+        this.isBetterCouponIds({ order, products, coupons, userCoupons, bestCouponIds, couponIds })
+          ? couponIds
+          : bestCouponIds,
+      [],
+    );
+
+    return { couponIds: recommendedCouponIds };
+  }
+
+  private getCouponCombinations(couponIds: string[]) {
+    return couponIds.reduce<string[][]>(
+      (combinations, couponId, index) => [
+        ...combinations,
+        [couponId],
+        ...couponIds.slice(index + 1).map((nextCouponId) => [couponId, nextCouponId]),
+      ],
+      [[]],
+    );
+  }
+
+  private isBetterCouponIds({
+    order,
+    products,
+    coupons,
+    userCoupons,
+    bestCouponIds,
+    couponIds,
+  }: {
+    order: Order;
+    products: Awaited<ReturnType<ProductsRepository['getAll']>>;
+    coupons: Awaited<ReturnType<CouponsRepository['getCoupons']>>;
+    userCoupons: Awaited<ReturnType<CouponsRepository['getUserCoupons']>>;
+    bestCouponIds: string[];
+    couponIds: string[];
+  }) {
+    const bestAmount = this.calculateAmountSafely({ order, products, coupons, userCoupons, couponIds: bestCouponIds });
+    const nextAmount = this.calculateAmountSafely({ order, products, coupons, userCoupons, couponIds });
+
+    if (!nextAmount) return false;
+    if (!bestAmount) return true;
+
+    return nextAmount.totalAmount < bestAmount.totalAmount;
+  }
+
+  private calculateAmountSafely({
+    order,
+    products,
+    coupons,
+    userCoupons,
+    couponIds,
+  }: {
+    order: Order;
+    products: Awaited<ReturnType<ProductsRepository['getAll']>>;
+    coupons: Awaited<ReturnType<CouponsRepository['getCoupons']>>;
+    userCoupons: Awaited<ReturnType<CouponsRepository['getUserCoupons']>>;
+    couponIds: string[];
+  }) {
+    try {
+      const orderPreview = { ...order, couponIds };
+
+      this.couponValidator.validate({ order: orderPreview, products, issuedCoupons: userCoupons, coupons });
+
+      return this.orderAmountCalculator.calculate({ order: orderPreview, products, issuedCoupons: userCoupons, coupons });
+    } catch (error) {
+      if (error instanceof CouponUnavailableError) return null;
+
+      throw error;
+    }
   }
 
   private isDisabledCoupon({

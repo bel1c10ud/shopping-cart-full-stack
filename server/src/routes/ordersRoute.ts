@@ -7,6 +7,7 @@ export const createOrdersRouter = (ordersController: OrdersController) => {
   productRouter.post('/', ordersController.postOrder);
   productRouter.get('/:orderId/amount', ordersController.getOrderAmount);
   productRouter.get('/:orderId/coupons', ordersController.getOrderCoupons);
+  productRouter.get('/:orderId/coupon-recommendation', ordersController.getOrderCouponRecommendation);
   productRouter.get('/:orderId', ordersController.getOrderById);
   productRouter.patch('/:orderId', ordersController.patchOrder);
 

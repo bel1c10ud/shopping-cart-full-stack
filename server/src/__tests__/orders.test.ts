@@ -478,6 +478,73 @@ describe('주문', () => {
     });
   });
 
+  describe('최고 혜택 쿠폰 조회 (GET /order/:orderId/coupon-recommendation)', () => {
+    it('현재 주문 상태에서 최종 결제 금액이 가장 낮은 사용자 쿠폰 식별자 목록을 조회한다', async () => {
+      const product = {
+        productId: 'product-1',
+        name: '상품명',
+        price: FREE_SHIPPING_THRESHOLD,
+        image: 'https://example.com/product.png',
+        stock: 5,
+      };
+
+      couponStore.coupons.set('cp5', {
+        couponId: 'cp5',
+        couponType: 'PERCENT',
+        code: 'PERCENT10',
+        name: '10% 할인 쿠폰',
+        expiresAt: '2026-11-30',
+        minOrderAmount: null,
+        minItemCount: null,
+        orderAmountDiscountType: 'PERCENT',
+        orderAmountDiscountValue: 10,
+        shippingFeeDiscountType: 'NONE',
+        shippingFeeDiscountValue: null,
+        remoteAreaFeeDiscountType: 'NONE',
+        remoteAreaFeeDiscountValue: null,
+        itemDiscountType: 'NONE',
+        itemDiscountValue: null,
+        availableTimeStart: null,
+        availableTimeEnd: null,
+      });
+      couponStore.userCoupons.set('ucp5', {
+        userCouponId: 'ucp5',
+        couponId: 'cp5',
+        issuedAt: '2026-06-16',
+        usedAt: null,
+        usedOrderId: null,
+      });
+      products.set(product.productId, product);
+      orders.set('order-1', {
+        orderId: 'order-1',
+        status: 'PENDING',
+        isRemoteArea: false,
+        items: [{ productId: product.productId, quantity: 1 }],
+        couponIds: [],
+      });
+
+      const response = await request(app).get('/order/order-1/coupon-recommendation').expect(200);
+
+      expect(response.body).toEqual({
+        status: 'success',
+        data: {
+          couponIds: ['ucp1', 'ucp5'],
+        },
+      });
+    });
+
+    it('존재하지 않는 주문의 최고 혜택 쿠폰을 조회하면 404 에러가 발생한다', async () => {
+      const response = await request(app).get('/order/unknown-order/coupon-recommendation').expect(404);
+
+      expect(response.body).toEqual({
+        status: 'fail',
+        data: {
+          orderId: '존재하지 않는 주문입니다.',
+        },
+      });
+    });
+  });
+
   describe('주문 정보 수정 (PATCH /order/:orderId)', () => {
     it('도서산간 지역 여부를 수정한다', async () => {
       const product = {

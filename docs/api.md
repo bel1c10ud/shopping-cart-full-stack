@@ -158,6 +158,20 @@
 | `discountAmount` | `number` | ✓    | 할인 금액      | >= 0 |
 | `totalAmount`    | `number` | ✓    | 최종 결제 금액 | >= 0 |
 
+### CouponRecommendation
+
+현재 저장된 주문 상태에서 최종 결제 금액이 가장 낮아지는 사용자 쿠폰 조합 정보.
+
+| 필드        | 타입       | 필수 | 설명                              | 제약 |
+| ----------- | ---------- | ---- | --------------------------------- | ---- |
+| `couponIds` | `string[]` | ✓    | 추천 사용자 쿠폰 식별자 목록      | 최대 2개 |
+
+```json
+{
+  "couponIds": ["user-coupon-1", "user-coupon-2"]
+}
+```
+
 ### Order
 
 | 필드           | 타입                  | 필수 | 설명                           | 제약             |
@@ -899,6 +913,56 @@ GET /order/:orderId/coupons
       }
     }
   ]
+}
+```
+
+```json
+// 404 Not Found - 존재하지 않는 주문
+{
+  "status": "fail",
+  "data": {
+    "orderId": "존재하지 않는 주문입니다."
+  }
+}
+```
+
+---
+
+### 최고 혜택 쿠폰 조회
+
+> 현재 저장된 주문 상태에서 최종 결제 금액이 가장 낮아지는 사용자 쿠폰 식별자 목록을 반환한다.
+> 주문 상태는 변경하지 않으며, 추천된 쿠폰을 실제 주문 정보에 반영하려면 `PATCH /order/:orderId`를 사용한다.
+> 사용 가능한 쿠폰이 없거나 쿠폰을 사용하지 않는 것이 가장 유리한 경우 빈 배열을 반환한다.
+
+```
+GET /order/:orderId/coupon-recommendation
+```
+
+#### 요청
+
+**Path Parameter**
+
+| 파라미터  | 타입     | 설명                    |
+| --------- | -------- | ----------------------- |
+| `orderId` | `string` | 조회할 주문 고유 식별자 |
+
+#### 응답
+
+**Response Body**
+
+| 필드   | 타입                   | 설명             |
+| ------ | ---------------------- | ---------------- |
+| `data` | `CouponRecommendation` | 추천 쿠폰 조합 정보 |
+
+**Example**
+
+```json
+// 200 OK
+{
+  "status": "success",
+  "data": {
+    "couponIds": ["user-coupon-1", "user-coupon-2"]
+  }
 }
 ```
 

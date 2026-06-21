@@ -116,6 +116,10 @@ export interface OrderCoupon {
   };
 }
 
+export interface CouponRecommendation {
+  couponIds: UserCoupon['userCouponId'][];
+}
+
 export interface ProductsServicePort {
   getProducts(): Promise<Product[]>;
   insertProduct(product: Omit<Product, 'productId'>): Promise<Product>;
@@ -137,6 +141,7 @@ export interface OrdersServicePort {
   getOrderById(orderId: Order['orderId']): Promise<OrderWithProduct>;
   insertOrder(items: OrderItem[]): Promise<OrderWithProduct>;
   getOrderCoupons(orderId: Order['orderId']): Promise<OrderCoupon[]>;
+  getOrderCouponRecommendation(orderId: Order['orderId']): Promise<CouponRecommendation>;
   getOrderAmount(
     orderId: Order['orderId'],
     orderPartial: Partial<Pick<Order, 'isRemoteArea' | 'couponIds'>>,
