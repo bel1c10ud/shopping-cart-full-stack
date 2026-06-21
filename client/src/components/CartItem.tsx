@@ -7,7 +7,6 @@ import Flex from './common/Flex';
 import Typo from './common/Typo';
 import Button from './common/Button';
 import CheckBox from './common/CheckBox';
-import List from './common/List';
 import Image from './common/Image';
 
 export default function CartItem(props: { data: TCartItem }) {
@@ -26,22 +25,18 @@ export default function CartItem(props: { data: TCartItem }) {
   });
 
   return (
-    <List.Item
-      direction="column"
-      gap={8}
-      header={
-        <Flex justifyContent="space-between">
-          <CheckBox
-            checked={selectedById[cartItem.cartItemId] ?? true}
-            onChange={(checked) => setSelected(cartItem.cartItemId, checked)}
-          />
-          <Button size="s" onClick={() => deleteCartItemMutation.mutate(cartItem.cartItemId)}>
-            삭제
-          </Button>
-        </Flex>
-      }
-      py={16}
-      content={
+    <Flex as="li" direction="column" gap={8} py={16}>
+      <Flex justifyContent="space-between">
+        <CheckBox
+          checked={selectedById[cartItem.cartItemId] ?? true}
+          onChange={(checked) => setSelected(cartItem.cartItemId, checked)}
+        />
+        <Button size="s" onClick={() => deleteCartItemMutation.mutate(cartItem.cartItemId)}>
+          삭제
+        </Button>
+      </Flex>
+
+      <Flex justifyContent="space-between" alignItems="center">
         <Flex alignItems="center" gap={24}>
           <Image width={112} height={112} radius="l" src={cartItem.product.image} alt={cartItem.product.name} />
           <Flex direction="column" gap={8}>
@@ -82,7 +77,7 @@ export default function CartItem(props: { data: TCartItem }) {
             </Flex>
           </Flex>
         </Flex>
-      }
-    />
+      </Flex>
+    </Flex>
   );
 }
