@@ -8,9 +8,16 @@ import View from '../common/View';
 import Button from '../common/Button';
 import CartItemList from '../CartItemList';
 import CartAmountSummary from '../CartAmountSummary';
+import useCreateOrderMutation from '../../hooks/mutations/useCreateOrderMutation';
 
 export default function CartTemplate(props: { data: TCartItem[] }) {
   const navigate = useNavigate();
+
+  const createOrder = useCreateOrderMutation({
+    onSuccess: (order) => {
+      navigate(`/order/${order.orderId}`);
+    },
+  });
 
   const { selectedById } = useCartItemSelection(props.data);
 
@@ -33,11 +40,14 @@ export default function CartTemplate(props: { data: TCartItem[] }) {
       <View.CTA>
         <Button
           variant="cta"
-          onClick={() =>
-            navigate('/order', {
-              state: { products: selectedCartItems },
-            })
-          }
+          onClick={() => {
+            createOrder.mutate(
+              props.data.map((item) => ({
+                productId: item.product.productId,
+                quantity: item.quantity,
+              })),
+            );
+          }}
           disabled={!Object.entries(selectedById).some((el) => el[1])}
         >
           주문 확인

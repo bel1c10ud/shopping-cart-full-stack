@@ -10,7 +10,7 @@ createRoot(document.getElementById('root')!).render(
     <HashRouter>
       <Routes>
         <Route path={'/'} element={<CartPage />} />
-        <Route path={'/order'} element={<OrderPage />} />
+        <Route path={'/order/:orderId'} element={<OrderPage />} />
       </Routes>
     </HashRouter>
   </StrictMode>,

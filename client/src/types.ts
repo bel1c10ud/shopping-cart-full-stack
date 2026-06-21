@@ -12,6 +12,43 @@ export interface CartItem {
   product: Product;
 }
 
+export interface UserCoupon {
+  userCouponId: string;
+  couponId: string;
+  issuedAt: string;
+  usedAt: string | null;
+  usedOrderId: string | null;
+}
+
+export type OrderItem = {
+  productId: Product['productId'];
+  quantity: number;
+};
+
+export interface Order {
+  orderId: string;
+  status: 'PENDING' | 'PAID';
+  isRemoteArea: boolean;
+  items: OrderItem[];
+  couponIds: UserCoupon['userCouponId'][];
+}
+
+export interface AmountSummary {
+  orderAmount: number;
+  shippingAmount: number;
+  discountAmount: number;
+  totalAmount: number;
+}
+
+export interface OrderWithProduct {
+  orderId: string;
+  status: 'PENDING' | 'PAID';
+  isRemoteArea: boolean;
+  items: { product: Product; quantity: number }[];
+  couponIds: string[];
+  amount: AmountSummary;
+}
+
 export interface APISuccessResponse<T> {
   status: 'success';
   data: T;

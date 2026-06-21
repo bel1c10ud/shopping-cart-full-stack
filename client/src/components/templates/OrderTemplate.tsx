@@ -1,39 +1,138 @@
-import type { CartItem } from './../../types';
-import useCalculateCartAmount from './../../hooks/useCalculateCartAmount';
-import { formatWon } from './../../utils';
+import type { OrderWithProduct } from './../../types';
 import View from '../common/View';
 import Flex from '../common/Flex';
 import Typo from '../common/Typo';
 import Button from '../common/Button';
+import Image from '../common/Image';
+import { formatWon } from '../../utils';
+import CheckBox from '../common/CheckBox';
+import { useId } from 'react';
+import { css } from '@emotion/css';
+import useUpdateOrderMutation from '../../hooks/mutations/useUpdateOrderMutation';
 
-export default function OrderTemplate(props: { data: CartItem[] }) {
-  const { totalAmount } = useCalculateCartAmount(props.data);
+export default function OrderTemplate(props: { data: OrderWithProduct }) {
+  const updateMutation = useUpdateOrderMutation(props.data.orderId);
+
+  const itemTypeCount = props.data.items.length;
+  const itemCount = props.data.items.reduce((prev, cur) => prev + cur.quantity, 0);
+
+  const remoteAreaInputId = useId();
 
   return (
-    <View justifyContent="center" alignItems="center">
-      <Flex direction="column" alignItems="center" gap={16}>
-        <Typo as="h1" size="l" weight="bold">
-          주문확인
+    <View gap={24}>
+      <Flex direction="column">
+        <Typo as="h1" size="xl" weight="bold">
+          주문 확인
         </Typo>
-        <Typo size="s">
-          총 {props.data.length}종류의 상품 {props.data.reduce((prev, cur) => prev + cur.quantity, 0)}개를 주문합니다.
+        <Typo as="h2" size="s">
+          총 {itemTypeCount}종류의 상품 {itemCount}개를 주문합니다.
           <br />
           최종 결제 금액을 확인해 주세요.
         </Typo>
-        <Flex direction="column" alignItems="center">
-          <Typo as="h2" size="m" weight="bold">
+      </Flex>
+      <Flex as="ul" direction="column" className={itemsListStyle}>
+        {props.data.items.map((item) => (
+          <Flex as="li" alignItems="center" gap={24} py={8}>
+            <Image width={112} height={112} radius="l" src={item.product.image} alt={item.product.name} />
+            <Flex direction="column" gap={8}>
+              <Flex direction="column">
+                <Typo size="s">{item.product.name}</Typo>
+                <Typo size="xl" weight="bold">
+                  {formatWon(item.product.price)}
+                </Typo>
+              </Flex>
+              <Typo as="span" size="s">
+                {item.quantity}개
+              </Typo>
+            </Flex>
+          </Flex>
+        ))}
+      </Flex>
+      <Flex direction="column">
+        <Button>쿠폰 적용</Button>
+      </Flex>
+      <Flex direction="column" gap={10}>
+        <Typo size="m" weight="bold">
+          배송 정보
+        </Typo>
+        <Flex alignItems="center" gap={8}>
+          <CheckBox
+            id={remoteAreaInputId}
+            checked={props.data.isRemoteArea}
+            onChange={(checked) => updateMutation.mutate({ isRemoteArea: checked })}
+          />
+          <Typo as="label" size="s" htmlFor={remoteAreaInputId}>
+            제주도 및 도서 산간 지역
+          </Typo>
+        </Flex>
+      </Flex>
+      <Flex direction="column">
+        <Flex gap={4} py={10}>
+          <Image src={`${import.meta.env.BASE_URL}infomation.svg`} alt="infomation icon" />
+          <Typo size="s">총 주문 금액이 {formatWon(100000)} 이상일 경우 무료 배송됩니다</Typo>
+        </Flex>
+        <Flex direction="column" as="ul" className={amountSummaryListStyle}>
+          <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
+            <Typo size="m" weight="bold">
+              주문 금액
+            </Typo>
+            <Typo size="xl" weight="bold">
+              {formatWon(props.data.amount.orderAmount)}
+            </Typo>
+          </Flex>
+          <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
+            <Typo size="m" weight="bold">
+              쿠폰 할인 금액
+            </Typo>
+            <Typo size="xl" weight="bold">
+              {formatWon(props.data.amount.discountAmount)}
+            </Typo>
+          </Flex>
+          <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
+            <Typo size="m" weight="bold">
+              배송비
+            </Typo>
+            <Typo size="xl" weight="bold">
+              {formatWon(props.data.amount.shippingAmount)}
+            </Typo>
+          </Flex>
+        </Flex>
+        <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
+          <Typo size="m" weight="bold">
             총 결제 금액
           </Typo>
-          <Typo as="h1" size="l" weight="bold">
-            {formatWon(totalAmount)}
+          <Typo size="xl" weight="bold">
+            10,000
           </Typo>
         </Flex>
       </Flex>
       <View.CTA>
-        <Button variant="cta" disabled>
+        <Button
+          variant="cta"
+          // onClick={() => {
+          //   createOrder.mutate(
+          //     props.data.map((item) => ({
+          //       productId: item.product.productId,
+          //       quantity: item.quantity,
+          //     })),
+          //   );
+          // }}
+          // disabled={!Object.entries(selectedById).some((el) => el[1])}
+        >
           결제하기
         </Button>
       </View.CTA>
     </View>
   );
 }
+
+const itemsListStyle = css`
+  & > li {
+    border-top: 1px solid var(--color-gray-200);
+  }
+`;
+
+const amountSummaryListStyle = css`
+  border-top: 1px solid var(--color-gray-200);
+  border-bottom: 1px solid var(--color-gray-200);
+`;
