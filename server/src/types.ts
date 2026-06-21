@@ -103,6 +103,7 @@ export interface AmountSummary {
 }
 
 export interface OrderCoupon {
+  userCouponId: UserCoupon['userCouponId'];
   couponId: Coupon['couponId'];
   isDisabled: boolean;
   name: Coupon['name'];

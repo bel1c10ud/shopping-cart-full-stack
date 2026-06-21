@@ -49,6 +49,19 @@ export interface OrderWithProduct {
   amount: AmountSummary;
 }
 
+export interface OrderCoupon {
+  userCouponId: UserCoupon['userCouponId'];
+  couponId: string;
+  isDisabled: boolean;
+  name: string;
+  dueDate: string;
+  minOrderAmount: number | null;
+  availableTime: {
+    startTime: string | null;
+    endTime: string | null;
+  };
+}
+
 export interface APISuccessResponse<T> {
   status: 'success';
   data: T;

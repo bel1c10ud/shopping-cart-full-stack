@@ -1,4 +1,4 @@
-import { CouponUnavailableError, OrderNotFoundError, ProductNotFoundError } from '../errors';
+import { CouponNotFoundError, CouponUnavailableError, OrderNotFoundError, ProductNotFoundError } from '../errors';
 import CouponValidator from '../domain/CouponValidator';
 import OrderAmountCalculator from '../domain/OrderAmountCalculator';
 import { toOrderItemsWithProducts } from '../mappers/orderMapper';
@@ -137,17 +137,24 @@ class OrdersService implements OrdersServicePort {
     const coupons = await this.couponsRepository.getCoupons();
     const userCoupons = await this.couponsRepository.getUserCoupons();
 
-    return coupons.map((coupon) => ({
-      couponId: coupon.couponId,
-      isDisabled: this.isDisabledCoupon({ coupon, order, products, userCoupons }),
-      name: coupon.name,
-      dueDate: coupon.expiresAt,
-      minOrderAmount: coupon.minOrderAmount,
-      availableTime: {
-        startTime: coupon.availableTimeStart,
-        endTime: coupon.availableTimeEnd,
-      },
-    }));
+    return userCoupons.map((userCoupon) => {
+      const coupon = coupons.find((coupon) => coupon.couponId === userCoupon.couponId);
+
+      if (!coupon) throw new CouponNotFoundError(userCoupon.couponId);
+
+      return {
+        userCouponId: userCoupon.userCouponId,
+        couponId: coupon.couponId,
+        isDisabled: this.isDisabledCoupon({ coupon, order, products, userCoupons }),
+        name: coupon.name,
+        dueDate: coupon.expiresAt,
+        minOrderAmount: coupon.minOrderAmount,
+        availableTime: {
+          startTime: coupon.availableTimeStart,
+          endTime: coupon.availableTimeEnd,
+        },
+      };
+    });
   }
 
   private isDisabledCoupon({
