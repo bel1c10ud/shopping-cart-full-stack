@@ -11,8 +11,10 @@ import { css } from '@emotion/css';
 import useUpdateOrderMutation from '../../hooks/mutations/useUpdateOrderMutation';
 import { useModal } from '../../hooks/useModal';
 import CouponApplyModal from '../CouponApplyModal';
+import { useNavigate } from 'react-router';
 
 export default function OrderTemplate(props: { data: OrderWithProduct }) {
+  const navigate = useNavigate();
   const { openModalAsync } = useModal();
 
   const remoteAreaInputId = useId();
@@ -117,7 +119,11 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
         </Flex>
       </Flex>
       <View.CTA>
-        <Button variant="cta" disabled={updateMutation.status === 'loading'}>
+        <Button
+          variant="cta"
+          disabled={updateMutation.status === 'loading'}
+          onClick={() => navigate(`/order/${props.data.orderId}/complete`)}
+        >
           결제하기
         </Button>
       </View.CTA>

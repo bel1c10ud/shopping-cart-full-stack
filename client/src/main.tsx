@@ -5,6 +5,7 @@ import CartPage from './pages/CartPage.tsx';
 import './styles/index.css';
 import OrderPage from './pages/OrderPage.tsx';
 import { ModalProvider } from './hooks/useModal.tsx';
+import OrderCompletePage from './pages/OrderCompletePage.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path={'/'} element={<CartPage />} />
           <Route path={'/order/:orderId'} element={<OrderPage />} />
+          <Route path={'/order/:orderId/complete'} element={<OrderCompletePage />} />
         </Routes>
       </HashRouter>
     </ModalProvider>
