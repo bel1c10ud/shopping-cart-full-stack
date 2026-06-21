@@ -63,6 +63,10 @@ export interface OrderCoupon {
   };
 }
 
+export interface CouponRecommendation {
+  couponIds: UserCoupon['userCouponId'][];
+}
+
 export interface APISuccessResponse<T> {
   status: 'success';
   data: T;

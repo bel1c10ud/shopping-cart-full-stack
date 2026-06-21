@@ -4,6 +4,7 @@ import type { OrderCoupon, OrderWithProduct } from '../types';
 import { formatDate, formatTime, formatWon } from '../utils';
 import useUpdateOrderMutation from '../hooks/mutations/useUpdateOrderMutation';
 import useOrderAmountQuery from '../hooks/queries/useOrderAmountQuery';
+import useOrderCouponRecommendationQuery from '../hooks/queries/useOrderCouponRecommendationQuery';
 import useOrderCouponsQuery from '../hooks/queries/useOrderCouponsQuery';
 import Button from './common/Button';
 import CheckBox from './common/CheckBox';
@@ -28,6 +29,7 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
   const [errorMessage, setErrorMessage] = useState('');
 
   const couponsQuery = useOrderCouponsQuery(order.orderId);
+  const recommendationQuery = useOrderCouponRecommendationQuery(order.orderId);
 
   const updateOrder = useUpdateOrderMutation(order.orderId);
 
@@ -66,6 +68,23 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
         ? prev.filter((couponId) => couponId !== coupon.userCouponId)
         : [...prev, coupon.userCouponId],
     );
+  };
+
+  const handleApplyRecommendation = async () => {
+    setErrorMessage('');
+
+    try {
+      const response = await recommendationQuery.refetchAsync();
+
+      if (response.status !== 'success') {
+        setErrorMessage('최고 혜택 쿠폰을 불러올 수 없습니다.');
+        return;
+      }
+
+      setSelectedCouponIds(response.data.couponIds);
+    } catch {
+      setErrorMessage('최고 혜택 쿠폰을 불러올 수 없습니다.');
+    }
   };
 
   const handleApply = async () => {
@@ -189,6 +208,14 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
             할인 금액을 계산 중 오류가 발생했습니다.
           </Typo>
         )}
+
+        <Button onClick={handleApplyRecommendation} disabled={recommendationQuery.isFetching}>
+          {recommendationQuery.isFetching ? (
+            <Spinner size="s" mr={8} aria-label="최고 혜택 쿠폰 조회 중" />
+          ) : (
+            '최고 혜택 적용'
+          )}
+        </Button>
 
         <Button variant="primary" onClick={handleApply} disabled={amountQuery.isFetching}>
           {amountQuery.isFetching ? (
