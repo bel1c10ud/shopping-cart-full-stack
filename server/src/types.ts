@@ -105,6 +105,7 @@ export interface AmountSummary {
 export interface OrderCoupon {
   userCouponId: UserCoupon['userCouponId'];
   couponId: Coupon['couponId'];
+  couponType: Coupon['couponType'];
   isDisabled: boolean;
   name: Coupon['name'];
   dueDate: Coupon['expiresAt'];

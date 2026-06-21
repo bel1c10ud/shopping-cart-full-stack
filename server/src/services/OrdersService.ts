@@ -145,6 +145,7 @@ class OrdersService implements OrdersServicePort {
       return {
         userCouponId: userCoupon.userCouponId,
         couponId: coupon.couponId,
+        couponType: coupon.couponType,
         isDisabled: this.isDisabledCoupon({ coupon, order, products, userCoupons }),
         name: coupon.name,
         dueDate: coupon.expiresAt,

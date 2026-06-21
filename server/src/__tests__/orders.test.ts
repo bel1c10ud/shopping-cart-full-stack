@@ -413,6 +413,7 @@ describe('주문', () => {
           {
             userCouponId: 'ucp1',
             couponId: 'cp1',
+            couponType: 'AMOUNT',
             isDisabled: false,
             name: '5,000원 할인 쿠폰',
             dueDate: '2026-11-30',
@@ -425,6 +426,7 @@ describe('주문', () => {
           {
             userCouponId: 'ucp2',
             couponId: 'cp2',
+            couponType: 'AMOUNT',
             isDisabled: true,
             name: '2+1 쿠폰',
             dueDate: '2026-06-30',
@@ -437,6 +439,7 @@ describe('주문', () => {
           {
             userCouponId: 'ucp3',
             couponId: 'cp3',
+            couponType: 'AMOUNT',
             isDisabled: false,
             name: '무료 배송 쿠폰',
             dueDate: '2026-08-31',
@@ -449,6 +452,7 @@ describe('주문', () => {
           {
             userCouponId: 'ucp4',
             couponId: 'cp4',
+            couponType: 'PERCENT',
             isDisabled: true,
             name: '30% 시간제 할인 쿠폰',
             dueDate: '2026-07-31',
