@@ -52,6 +52,7 @@ export interface OrderWithProduct {
 export interface OrderCoupon {
   userCouponId: UserCoupon['userCouponId'];
   couponId: string;
+  couponType: 'AMOUNT' | 'PERCENT';
   isDisabled: boolean;
   name: string;
   dueDate: string;

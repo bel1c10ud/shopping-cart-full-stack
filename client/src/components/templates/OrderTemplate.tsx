@@ -9,14 +9,24 @@ import CheckBox from '../common/CheckBox';
 import { useId } from 'react';
 import { css } from '@emotion/css';
 import useUpdateOrderMutation from '../../hooks/mutations/useUpdateOrderMutation';
+import { useModal } from '../../hooks/useModal';
+import CouponApplyModal from '../CouponApplyModal';
 
 export default function OrderTemplate(props: { data: OrderWithProduct }) {
+  const { openModalAsync } = useModal();
+
+  const remoteAreaInputId = useId();
+
   const updateMutation = useUpdateOrderMutation(props.data.orderId);
 
   const itemTypeCount = props.data.items.length;
   const itemCount = props.data.items.reduce((prev, cur) => prev + cur.quantity, 0);
 
-  const remoteAreaInputId = useId();
+  const handleClickOpenModal = async () => {
+    await openModalAsync<string[]>(({ close, exit }) => (
+      <CouponApplyModal order={props.data} onConfirm={close} onCancel={exit} />
+    ));
+  };
 
   return (
     <View gap={24}>
@@ -32,7 +42,7 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
       </Flex>
       <Flex as="ul" direction="column" className={itemsListStyle}>
         {props.data.items.map((item) => (
-          <Flex as="li" alignItems="center" gap={24} py={8}>
+          <Flex as="li" key={item.product.productId} alignItems="center" gap={24} py={8}>
             <Image width={112} height={112} radius="l" src={item.product.image} alt={item.product.name} />
             <Flex direction="column" gap={8}>
               <Flex direction="column">
@@ -48,9 +58,9 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
           </Flex>
         ))}
       </Flex>
-      <Flex direction="column">
-        <Button>쿠폰 적용</Button>
-      </Flex>
+
+      <Button onClick={handleClickOpenModal}>쿠폰 적용</Button>
+
       <Flex direction="column" gap={10}>
         <Typo size="m" weight="bold">
           배송 정보
@@ -102,23 +112,12 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
             총 결제 금액
           </Typo>
           <Typo size="xl" weight="bold">
-            10,000
+            {formatWon(props.data.amount.totalAmount)}
           </Typo>
         </Flex>
       </Flex>
       <View.CTA>
-        <Button
-          variant="cta"
-          // onClick={() => {
-          //   createOrder.mutate(
-          //     props.data.map((item) => ({
-          //       productId: item.product.productId,
-          //       quantity: item.quantity,
-          //     })),
-          //   );
-          // }}
-          // disabled={!Object.entries(selectedById).some((el) => el[1])}
-        >
+        <Button variant="cta" disabled={updateMutation.status === 'loading'}>
           결제하기
         </Button>
       </View.CTA>

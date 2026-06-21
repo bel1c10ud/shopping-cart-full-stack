@@ -4,14 +4,17 @@ import { HashRouter, Route, Routes } from 'react-router';
 import CartPage from './pages/CartPage.tsx';
 import './styles/index.css';
 import OrderPage from './pages/OrderPage.tsx';
+import { ModalProvider } from './hooks/useModal.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <HashRouter>
-      <Routes>
-        <Route path={'/'} element={<CartPage />} />
-        <Route path={'/order/:orderId'} element={<OrderPage />} />
-      </Routes>
-    </HashRouter>
+    <ModalProvider>
+      <HashRouter>
+        <Routes>
+          <Route path={'/'} element={<CartPage />} />
+          <Route path={'/order/:orderId'} element={<OrderPage />} />
+        </Routes>
+      </HashRouter>
+    </ModalProvider>
   </StrictMode>,
 );

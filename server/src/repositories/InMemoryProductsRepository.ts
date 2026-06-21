@@ -7,7 +7,7 @@ export const products = new Map<string, Product>([
       productId: 'p1',
       name: '상품명',
       price: 10000,
-      image: 'https://example.com/product.png',
+      image: 'https://picsum.photos/id/1/256/256',
       stock: 5,
     },
   ],
