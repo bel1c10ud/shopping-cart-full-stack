@@ -6,18 +6,23 @@ import Button from '../common/Button';
 import Image from '../common/Image';
 import { formatWon } from '../../utils';
 import CheckBox from '../common/CheckBox';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { css } from '@emotion/css';
 import useUpdateOrderMutation from '../../hooks/mutations/useUpdateOrderMutation';
 import { useModal } from '../../hooks/useModal';
 import CouponApplyModal from '../CouponApplyModal';
 import { useNavigate } from 'react-router';
+import useOrderQuery from '../../hooks/queries/useOrderQuery';
+import Spinner from '../common/Spinner';
 
 export default function OrderTemplate(props: { data: OrderWithProduct }) {
   const navigate = useNavigate();
   const { openModalAsync } = useModal();
 
   const remoteAreaInputId = useId();
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const orderQuery = useOrderQuery(props.data.orderId);
 
   const updateMutation = useUpdateOrderMutation(props.data.orderId);
 
@@ -25,9 +30,30 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
   const itemCount = props.data.items.reduce((prev, cur) => prev + cur.quantity, 0);
 
   const handleClickOpenModal = async () => {
+    if (updateMutation.status === 'loading' || orderQuery.isFetching) return;
+
     await openModalAsync<string[]>(({ close, exit }) => (
       <CouponApplyModal order={props.data} onConfirm={close} onCancel={exit} />
     ));
+  };
+
+  const handleClickPayment = async () => {
+    if (updateMutation.status === 'loading' || orderQuery.isFetching) return;
+
+    setErrorMessage('');
+
+    try {
+      const response = await orderQuery.refetchAsync();
+
+      if (response.status !== 'success') {
+        setErrorMessage('최신 주문 정보를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+
+      navigate(`/order/${props.data.orderId}/complete`);
+    } catch {
+      setErrorMessage('최신 주문 정보를 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+    }
   };
 
   return (
@@ -61,7 +87,9 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
         ))}
       </Flex>
 
-      <Button onClick={handleClickOpenModal}>쿠폰 적용</Button>
+      <Button onClick={handleClickOpenModal} disabled={updateMutation.status === 'loading' || orderQuery.isFetching}>
+        쿠폰 적용
+      </Button>
 
       <Flex direction="column" gap={10}>
         <Typo size="m" weight="bold">
@@ -71,6 +99,7 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
           <CheckBox
             id={remoteAreaInputId}
             checked={props.data.isRemoteArea}
+            disabled={updateMutation.status === 'loading' || orderQuery.isFetching}
             onChange={(checked) => updateMutation.mutate({ isRemoteArea: checked })}
           />
           <Typo as="label" size="s" htmlFor={remoteAreaInputId}>
@@ -89,7 +118,11 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
               주문 금액
             </Typo>
             <Typo size="xl" weight="bold">
-              {formatWon(props.data.amount.orderAmount)}
+              {updateMutation.status === 'loading' || orderQuery.isFetching ? (
+                <Spinner size="s" aria-label="주문 금액 갱신 중" />
+              ) : (
+                formatWon(props.data.amount.orderAmount)
+              )}
             </Typo>
           </Flex>
           <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
@@ -97,7 +130,11 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
               쿠폰 할인 금액
             </Typo>
             <Typo size="xl" weight="bold">
-              {formatWon(props.data.amount.discountAmount)}
+              {updateMutation.status === 'loading' || orderQuery.isFetching ? (
+                <Spinner size="s" aria-label="쿠폰 할인 금액 갱신 중" />
+              ) : (
+                formatWon(props.data.amount.discountAmount)
+              )}
             </Typo>
           </Flex>
           <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
@@ -105,7 +142,11 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
               배송비
             </Typo>
             <Typo size="xl" weight="bold">
-              {formatWon(props.data.amount.shippingAmount)}
+              {updateMutation.status === 'loading' || orderQuery.isFetching ? (
+                <Spinner size="s" aria-label="배송비 갱신 중" />
+              ) : (
+                formatWon(props.data.amount.shippingAmount)
+              )}
             </Typo>
           </Flex>
         </Flex>
@@ -114,15 +155,24 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
             총 결제 금액
           </Typo>
           <Typo size="xl" weight="bold">
-            {formatWon(props.data.amount.totalAmount)}
+            {updateMutation.status === 'loading' || orderQuery.isFetching ? (
+              <Spinner size="s" aria-label="총 결제 금액 갱신 중" />
+            ) : (
+              formatWon(props.data.amount.totalAmount)
+            )}
           </Typo>
         </Flex>
+        {errorMessage && (
+          <Typo size="s" color="red-500" align="center">
+            {errorMessage}
+          </Typo>
+        )}
       </Flex>
       <View.CTA>
         <Button
           variant="cta"
-          disabled={updateMutation.status === 'loading'}
-          onClick={() => navigate(`/order/${props.data.orderId}/complete`)}
+          disabled={updateMutation.status === 'loading' || orderQuery.isFetching}
+          onClick={handleClickPayment}
         >
           결제하기
         </Button>

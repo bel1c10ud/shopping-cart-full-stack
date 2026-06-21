@@ -37,8 +37,11 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
     couponIds: selectedCouponIds,
     isRemoteArea: order.isRemoteArea,
   });
+  const isAmountUnavailable = amountQuery.status === 'fail' || amountQuery.status === 'error';
 
   const toggleCoupon = (coupon: OrderCoupon) => {
+    if (updateOrder.status === 'loading' || recommendationQuery.isFetching) return;
+
     setErrorMessage('');
 
     if (selectedCouponIds.includes(coupon.userCouponId)) {
@@ -71,6 +74,8 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
   };
 
   const handleApplyRecommendation = async () => {
+    if (updateOrder.status === 'loading') return;
+
     setErrorMessage('');
 
     try {
@@ -88,14 +93,20 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
   };
 
   const handleApply = async () => {
-    const response = await updateOrder.mutateAsync({ couponIds: selectedCouponIds });
+    setErrorMessage('');
 
-    if (response.status !== 'success') {
+    try {
+      const response = await updateOrder.mutateAsync({ couponIds: selectedCouponIds });
+
+      if (response.status !== 'success') {
+        setErrorMessage('쿠폰을 적용할 수 없습니다. 다시 선택해 주세요.');
+        return;
+      }
+
+      onConfirm(selectedCouponIds);
+    } catch {
       setErrorMessage('쿠폰을 적용할 수 없습니다. 다시 선택해 주세요.');
-      return;
     }
-
-    onConfirm(selectedCouponIds);
   };
 
   const handleClose = async () => {
@@ -165,7 +176,7 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
                   <CheckBox
                     id={couponInputId}
                     checked={checked}
-                    disabled={coupon.isDisabled}
+                    disabled={coupon.isDisabled || updateOrder.status === 'loading' || recommendationQuery.isFetching}
                     onChange={() => toggleCoupon(coupon)}
                   />
                   <Typo as="label" htmlFor={couponInputId} weight="bold" color={fontColor}>
@@ -209,7 +220,7 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
           </Typo>
         )}
 
-        <Button onClick={handleApplyRecommendation} disabled={recommendationQuery.isFetching}>
+        <Button onClick={handleApplyRecommendation} disabled={recommendationQuery.isFetching || updateOrder.status === 'loading'}>
           {recommendationQuery.isFetching ? (
             <Spinner size="s" mr={8} aria-label="최고 혜택 쿠폰 조회 중" />
           ) : (
@@ -217,8 +228,12 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
           )}
         </Button>
 
-        <Button variant="primary" onClick={handleApply} disabled={amountQuery.isFetching}>
-          {amountQuery.isFetching ? (
+        <Button
+          variant="primary"
+          onClick={handleApply}
+          disabled={amountQuery.isFetching || isAmountUnavailable || updateOrder.status === 'loading'}
+        >
+          {amountQuery.isFetching || updateOrder.status === 'loading' ? (
             <Spinner size="s" mr={8} aria-label="할인 금액 계산 중" />
           ) : (
             `총 ${formatWon(amount.discountAmount)} 할인 쿠폰 사용하기`
