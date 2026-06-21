@@ -15,11 +15,6 @@ export const colorPalette = {
   'gray-950': '#0e1118',
 } as const;
 
-export const fontColor = {
-  black: 'color-black',
-  white: 'color-white',
-} as const;
-
 export const spacing = {
   4: '4px',
   6: '6px',

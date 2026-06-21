@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { colorPalette, fontColor, spacing, radius, fontSize, fontWeight, buttonSize } from './token.config.ts';
+import { colorPalette, spacing, radius, fontSize, fontWeight, buttonSize } from './token.config.ts';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 
@@ -66,16 +66,6 @@ function tokenConst(exportName: string, typeName: string, cssPrefix: string, tok
   );
 }
 
-function semanticConst(exportName: string, typeName: string, mapping: Record<string, string>): string {
-  const entries = Object.entries(mapping)
-    .map(([k, v]) => `  ${tsKey(k)}: 'var(--${v})',`)
-    .join('\n');
-  return (
-    `export const ${exportName} = {\n${entries}\n} as const;\n\n` +
-    `export type ${typeName} = keyof typeof ${exportName};`
-  );
-}
-
 function nestedCssVarSection(comment: string, prefix: string, tokens: Record<string, Record<string, string>>): string {
   const vars = Object.entries(tokens)
     .flatMap(([size, values]) =>
@@ -110,9 +100,10 @@ const tokensTs =
   [
     '// This file is auto-generated. Run `npm run sync-token` to update.',
     tokenConst('SPACING', 'SpacingToken', '--spacing-', spacing as unknown as Record<string, string>),
+    tokenConst('COLOR', 'ColorToken', '--color-', colorPalette as unknown as Record<string, string>),
+    tokenConst('FONT_COLOR', 'FontColorToken', '--color-', colorPalette as unknown as Record<string, string>),
     tokenConst('FONT_SIZE', 'FontSizeToken', '--font-size-', fontSize),
     tokenConst('FONT_WEIGHT', 'FontWeightToken', '--font-weight-', fontWeight),
-    semanticConst('FONT_COLOR', 'FontColorToken', fontColor as unknown as Record<string, string>),
     tokenConst('RADIUS', 'RadiusToken', '--radius-', radius),
     nestedTokenConst(
       'BUTTON_SIZE',
@@ -126,4 +117,4 @@ writeFileSync(join(ROOT, 'src/tokens.ts'), tokensTs);
 
 console.log('Design tokens synced:');
 console.log('  src/styles/token.css');
-console.log('  src/styles/tokens.ts');
+console.log('  src/tokens.ts');
