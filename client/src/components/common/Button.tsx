@@ -5,7 +5,7 @@ import { BUTTON_SIZE, type ButtonSizeToken } from '../../tokens';
 import { spacingStyle, splitSpacingProps, type SpacingStyleProps } from './styleProps';
 
 const variants = {
-  default: css`
+  outline: css`
     border-radius: var(--radius-m);
     background: var(--color-white);
     color: var(--color-black);
@@ -14,6 +14,23 @@ const variants = {
     &:disabled {
       color: var(--color-gray-300);
       border: 1px solid var(--color-gray-200);
+    }
+  `,
+  primary: css`
+    border-radius: var(--radius-m);
+    background: var(--color-black);
+    color: var(--color-white);
+
+    &:disabled {
+      color: var(--color-gray-300);
+      border: 1px solid var(--color-gray-200);
+    }
+  `,
+  ghost: css`
+    color: var(--color-black);
+
+    &:disabled {
+      color: var(--color-gray-300);
     }
   `,
   cta: css`
@@ -42,11 +59,12 @@ export default function Button<T extends HTMLElementType = 'button'>({
   const { spacingProps, restProps } = splitSpacingProps(props);
   return React.createElement(as ?? 'button', {
     ...restProps,
-    className: cx(buttonStyle(size), spacingStyle(spacingProps), variants[variant ?? 'default'], className),
+    className: cx(buttonStyle(size), spacingStyle(spacingProps), variants[variant ?? 'outline'], className),
   });
 }
 
 const buttonStyle = (size: ButtonSizeToken) => css`
+  background: transparent;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
