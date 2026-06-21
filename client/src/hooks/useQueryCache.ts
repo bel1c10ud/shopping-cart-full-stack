@@ -14,6 +14,7 @@ interface QueryCacheEntry<T> {
 
 type QueryKey = string | number | boolean | null | readonly QueryKey[] | { [key: string]: QueryKey };
 type QueryStateUpdater<T> = QueryState<T> | ((prev: QueryState<T> | undefined) => QueryState<T> | undefined);
+type QueryFetchStatus = 'idle' | 'fetching';
 
 export const isFreshCacheEntry = (entry: QueryCacheEntry<unknown> | undefined, staleTime: number, now = Date.now()) => {
   if (!entry) return false;
@@ -26,6 +27,7 @@ export const isFreshCacheEntry = (entry: QueryCacheEntry<unknown> | undefined, s
 let version = 0;
 
 const cache = new Map<string, QueryCacheEntry<unknown>>();
+const fetchStatuses = new Map<string, QueryFetchStatus>();
 const listeners = new Set<() => void>();
 
 const hashQueryKey = (key: QueryKey) => JSON.stringify(key);
@@ -49,6 +51,20 @@ export const queryCache = {
   get<T>(key: QueryKey) {
     return cache.get(hashQueryKey(key))?.state as QueryState<T> | undefined;
   },
+  getFetchStatus(key: QueryKey) {
+    return fetchStatuses.get(hashQueryKey(key)) ?? 'idle';
+  },
+  setFetchStatus(key: QueryKey, fetchStatus: QueryFetchStatus) {
+    const queryKeyHash = hashQueryKey(key);
+
+    if (fetchStatus === 'idle') {
+      fetchStatuses.delete(queryKeyHash);
+    } else {
+      fetchStatuses.set(queryKeyHash, fetchStatus);
+    }
+
+    notify();
+  },
   set<T>(key: QueryKey, updater: QueryStateUpdater<T>) {
     const queryKeyHash = hashQueryKey(key);
     const entry = cache.get(queryKeyHash) as QueryCacheEntry<T> | undefined;
@@ -63,11 +79,15 @@ export const queryCache = {
     notify();
   },
   invalidate(key: QueryKey) {
-    cache.delete(hashQueryKey(key));
+    const queryKeyHash = hashQueryKey(key);
+
+    cache.delete(queryKeyHash);
+    fetchStatuses.delete(queryKeyHash);
     notify();
   },
   clear() {
     cache.clear();
+    fetchStatuses.clear();
     notify();
   },
 };
@@ -79,6 +99,8 @@ export default function useQueryCache() {
     setCache: queryCache.set,
     getCache: queryCache.get,
     getCacheEntry: queryCache.getEntry,
+    setFetchStatus: queryCache.setFetchStatus,
+    getFetchStatus: queryCache.getFetchStatus,
     invalidateCache: queryCache.invalidate,
   };
 }

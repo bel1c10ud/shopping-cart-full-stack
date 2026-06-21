@@ -26,9 +26,10 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
   const queryKeyHash = JSON.stringify(queryKey);
   const staleTime = option.staleTime ?? Infinity;
 
-  const { setCache, getCache, getCacheEntry } = useQueryCache();
+  const { setCache, getCache, getCacheEntry, setFetchStatus, getFetchStatus } = useQueryCache();
 
   const state = getCache<T>(queryKey) ?? idleState;
+  const fetchStatus = getFetchStatus(queryKey);
 
   useEffect(() => {
     latestOption.current = option;
@@ -38,6 +39,8 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
     const { queryKey } = latestOption.current;
     const currentState = getCache<T>(queryKey) ?? idleState;
 
+    setFetchStatus(queryKey, 'fetching');
+
     if (currentState.status === 'idle') {
       setCache(queryKey, {
         status: 'loading',
@@ -46,6 +49,7 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
         error: null,
       });
     }
+
     try {
       const { queryFn, queryKey } = latestOption.current;
       const response = await queryFn(queryKey);
@@ -89,8 +93,10 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
       });
 
       throw error;
+    } finally {
+      setFetchStatus(latestOption.current.queryKey, 'idle');
     }
-  }, [getCache, setCache]);
+  }, [getCache, setCache, setFetchStatus]);
 
   const refetch = useCallback(async () => {
     try {
@@ -126,6 +132,8 @@ export default function useQuery<T, K extends JsonValue>(option: QueryOption<T, 
 
   return {
     ...state,
+    fetchStatus,
+    isFetching: fetchStatus === 'fetching',
     refetch,
     refetchAsync,
   };
