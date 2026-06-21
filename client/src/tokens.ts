@@ -29,6 +29,17 @@ export const COLOR = {
   'gray-800': 'var(--color-gray-800)',
   'gray-900': 'var(--color-gray-900)',
   'gray-950': 'var(--color-gray-950)',
+  'red-50': 'var(--color-red-50)',
+  'red-100': 'var(--color-red-100)',
+  'red-200': 'var(--color-red-200)',
+  'red-300': 'var(--color-red-300)',
+  'red-400': 'var(--color-red-400)',
+  'red-500': 'var(--color-red-500)',
+  'red-600': 'var(--color-red-600)',
+  'red-700': 'var(--color-red-700)',
+  'red-800': 'var(--color-red-800)',
+  'red-900': 'var(--color-red-900)',
+  'red-950': 'var(--color-red-950)',
 } as const;
 
 export type ColorToken = keyof typeof COLOR;
@@ -47,6 +58,17 @@ export const FONT_COLOR = {
   'gray-800': 'var(--color-gray-800)',
   'gray-900': 'var(--color-gray-900)',
   'gray-950': 'var(--color-gray-950)',
+  'red-50': 'var(--color-red-50)',
+  'red-100': 'var(--color-red-100)',
+  'red-200': 'var(--color-red-200)',
+  'red-300': 'var(--color-red-300)',
+  'red-400': 'var(--color-red-400)',
+  'red-500': 'var(--color-red-500)',
+  'red-600': 'var(--color-red-600)',
+  'red-700': 'var(--color-red-700)',
+  'red-800': 'var(--color-red-800)',
+  'red-900': 'var(--color-red-900)',
+  'red-950': 'var(--color-red-950)',
 } as const;
 
 export type FontColorToken = keyof typeof FONT_COLOR;

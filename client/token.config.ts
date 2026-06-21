@@ -13,6 +13,18 @@ export const colorPalette = {
   'gray-800': '#272e3b',
   'gray-900': '#181d27',
   'gray-950': '#0e1118',
+
+  'red-50': '#fef2f2',
+  'red-100': '#fee2e2',
+  'red-200': '#fecaca',
+  'red-300': '#fca5a5',
+  'red-400': '#f87171',
+  'red-500': '#ef4444',
+  'red-600': '#dc2626',
+  'red-700': '#b91c1c',
+  'red-800': '#991b1b',
+  'red-900': '#7f1d1d',
+  'red-950': '#450a0a',
 } as const;
 
 export const spacing = {
