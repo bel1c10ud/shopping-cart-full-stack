@@ -32,7 +32,11 @@ export default function OrderAmountSummary({ amount, isLoading }: OrderAmountSum
             쿠폰 할인 금액
           </Typo>
           <Typo size="xl" weight="bold">
-            {isLoading ? <Spinner size="s" aria-label="쿠폰 할인 금액 갱신 중" /> : formatWon(amount.discountAmount)}
+            {isLoading ? (
+              <Spinner size="s" aria-label="쿠폰 할인 금액 갱신 중" />
+            ) : (
+              `-${formatWon(amount.discountAmount)}`
+            )}
           </Typo>
         </Flex>
         <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
