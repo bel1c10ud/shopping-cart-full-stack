@@ -1,13 +1,12 @@
 import { css } from '@emotion/css';
 import { useState } from 'react';
 import type { OrderCoupon, OrderWithProduct } from '../types';
-import { formatDate, formatTime, formatWon } from '../utils';
+import { formatWon } from '../utils';
 import useUpdateOrderMutation from '../hooks/mutations/useUpdateOrderMutation';
 import useOrderAmountQuery from '../hooks/queries/useOrderAmountQuery';
 import useOrderCouponRecommendationQuery from '../hooks/queries/useOrderCouponRecommendationQuery';
 import useOrderCouponsQuery from '../hooks/queries/useOrderCouponsQuery';
 import Button from './common/Button';
-import CheckBox from './common/CheckBox';
 import Flex from './common/Flex';
 import Typo from './common/Typo';
 import Image from './common/Image';
@@ -15,6 +14,7 @@ import ModalLayout from './modal/ModalLayout';
 import { useModal } from '../hooks/useModal';
 import ConfirmModal from './ConfirmModal';
 import Spinner from './common/Spinner';
+import CouponListItem from './CouponListItem';
 
 interface CouponApplyModalProps {
   order: OrderWithProduct;
@@ -164,44 +164,15 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
             </Typo>
           )}
 
-          {coupons?.map((coupon) => {
-            const couponInputId = `coupon-${coupon.userCouponId}`;
-
-            const fontColor = coupon.isDisabled ? 'gray-400' : undefined;
-            const checked = selectedCouponIds.includes(coupon.userCouponId);
-
-            return (
-              <Flex.Column as="li" key={coupon.userCouponId} gap={8} py={12}>
-                <Flex alignItems="center" gap={8}>
-                  <CheckBox
-                    id={couponInputId}
-                    checked={checked}
-                    disabled={coupon.isDisabled || updateOrder.status === 'loading' || recommendationQuery.isFetching}
-                    onChange={() => toggleCoupon(coupon)}
-                  />
-                  <Typo as="label" htmlFor={couponInputId} weight="bold" color={fontColor}>
-                    {coupon.name}
-                  </Typo>
-                </Flex>
-                <Flex.Column>
-                  <Typo size="s" color={fontColor}>
-                    만료일: {formatDate(coupon.dueDate)}
-                  </Typo>
-                  {coupon.minOrderAmount !== null && (
-                    <Typo size="s" color={fontColor}>
-                      최소 주문 금액: {formatWon(coupon.minOrderAmount)}
-                    </Typo>
-                  )}
-                  {coupon.availableTime.startTime && coupon.availableTime.endTime && (
-                    <Typo size="s" color={fontColor}>
-                      사용 가능 시간: {formatTime(coupon.availableTime.startTime)}부터{' '}
-                      {formatTime(coupon.availableTime.endTime)}까지
-                    </Typo>
-                  )}
-                </Flex.Column>
-              </Flex.Column>
-            );
-          })}
+          {coupons?.map((coupon) => (
+            <CouponListItem
+              key={coupon.userCouponId}
+              coupon={coupon}
+              checked={selectedCouponIds.includes(coupon.userCouponId)}
+              disabled={coupon.isDisabled || updateOrder.status === 'loading' || recommendationQuery.isFetching}
+              onChange={() => toggleCoupon(coupon)}
+            />
+          ))}
         </Flex.Column>
 
         {errorMessage && (

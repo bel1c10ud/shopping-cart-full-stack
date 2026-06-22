@@ -13,7 +13,7 @@ import { useModal } from '../../hooks/useModal';
 import CouponApplyModal from '../CouponApplyModal';
 import { useNavigate } from 'react-router';
 import useOrderQuery from '../../hooks/queries/useOrderQuery';
-import Spinner from '../common/Spinner';
+import OrderAmountSummary from '../OrderAmountSummary';
 
 export default function OrderTemplate(props: { data: OrderWithProduct }) {
   const navigate = useNavigate();
@@ -108,60 +108,10 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
         </Flex>
       </Flex.Column>
       <Flex.Column>
-        <Flex gap={4} py={10}>
-          <Image src={`${import.meta.env.BASE_URL}infomation.svg`} alt="infomation icon" />
-          <Typo size="s">총 주문 금액이 {formatWon(100000)} 이상일 경우 무료 배송됩니다</Typo>
-        </Flex>
-        <Flex.Column as="ul" className={amountSummaryListStyle}>
-          <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
-            <Typo size="m" weight="bold">
-              주문 금액
-            </Typo>
-            <Typo size="xl" weight="bold">
-              {updateMutation.status === 'loading' || orderQuery.isFetching ? (
-                <Spinner size="s" aria-label="주문 금액 갱신 중" />
-              ) : (
-                formatWon(props.data.amount.orderAmount)
-              )}
-            </Typo>
-          </Flex>
-          <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
-            <Typo size="m" weight="bold">
-              쿠폰 할인 금액
-            </Typo>
-            <Typo size="xl" weight="bold">
-              {updateMutation.status === 'loading' || orderQuery.isFetching ? (
-                <Spinner size="s" aria-label="쿠폰 할인 금액 갱신 중" />
-              ) : (
-                formatWon(props.data.amount.discountAmount)
-              )}
-            </Typo>
-          </Flex>
-          <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
-            <Typo size="m" weight="bold">
-              배송비
-            </Typo>
-            <Typo size="xl" weight="bold">
-              {updateMutation.status === 'loading' || orderQuery.isFetching ? (
-                <Spinner size="s" aria-label="배송비 갱신 중" />
-              ) : (
-                formatWon(props.data.amount.shippingAmount)
-              )}
-            </Typo>
-          </Flex>
-        </Flex.Column>
-        <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
-          <Typo size="m" weight="bold">
-            총 결제 금액
-          </Typo>
-          <Typo size="xl" weight="bold">
-            {updateMutation.status === 'loading' || orderQuery.isFetching ? (
-              <Spinner size="s" aria-label="총 결제 금액 갱신 중" />
-            ) : (
-              formatWon(props.data.amount.totalAmount)
-            )}
-          </Typo>
-        </Flex>
+        <OrderAmountSummary
+          amount={props.data.amount}
+          isLoading={updateMutation.status === 'loading' || orderQuery.isFetching}
+        />
         {errorMessage && (
           <Typo size="s" color="red-500" align="center">
             {errorMessage}
@@ -185,9 +135,4 @@ const itemsListStyle = css`
   & > li {
     border-top: 1px solid var(--color-gray-200);
   }
-`;
-
-const amountSummaryListStyle = css`
-  border-top: 1px solid var(--color-gray-200);
-  border-bottom: 1px solid var(--color-gray-200);
 `;
