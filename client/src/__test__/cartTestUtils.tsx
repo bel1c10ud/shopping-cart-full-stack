@@ -3,6 +3,8 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import CartPage from '../pages/CartPage';
 import OrderPage from '../pages/OrderPage';
 import type { CartItem } from '../types';
+import { ModalProvider } from '../hooks/useModal';
+import OrderCompletePage from '../pages/OrderCompletePage';
 
 export const createCartItems = (): CartItem[] => [
   {
@@ -32,10 +34,27 @@ export const createCartItems = (): CartItem[] => [
 export const renderCartPage = () => {
   return render(
     <MemoryRouter initialEntries={['/']}>
-      <Routes>
-        <Route path="/" element={<CartPage />} />
-        <Route path="/order" element={<OrderPage />} />
-      </Routes>
+      <ModalProvider>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order/:orderId" element={<OrderPage />} />
+          <Route path="/order/:orderId/complete" element={<OrderCompletePage />} />
+        </Routes>
+      </ModalProvider>
+    </MemoryRouter>,
+  );
+};
+
+export const renderOrderPage = (orderId = 'order-1') => {
+  return render(
+    <MemoryRouter initialEntries={[`/order/${orderId}`]}>
+      <ModalProvider>
+        <Routes>
+          <Route path="/" element={<CartPage />} />
+          <Route path="/order/:orderId" element={<OrderPage />} />
+          <Route path="/order/:orderId/complete" element={<OrderCompletePage />} />
+        </Routes>
+      </ModalProvider>
     </MemoryRouter>,
   );
 };
