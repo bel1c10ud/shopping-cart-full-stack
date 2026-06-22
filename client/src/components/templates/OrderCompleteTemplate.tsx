@@ -13,7 +13,7 @@ export default function OrderCompleteTemplate(props: { data: OrderWithProduct })
 
   return (
     <View>
-      <Flex direction="column" alignItems="center" justifyContent="center" flexGrow={1} gap={12}>
+      <Flex.Column alignItems="center" justifyContent="center" flexGrow={1} gap={12}>
         <Typo as="h2" size="l" weight="bold">
           결제 확인
         </Typo>
@@ -22,15 +22,15 @@ export default function OrderCompleteTemplate(props: { data: OrderWithProduct })
           <br />
           최종 결제 금액을 확인해 주세요.
         </Typo>
-        <Flex direction="column" alignItems="center" gap={4}>
+        <Flex.Column alignItems="center" gap={4}>
           <Typo size="m" weight="bold">
             총 결제 금액
           </Typo>
           <Typo size="xl" weight="bold">
             {formatWon(props.data.amount.totalAmount)}
           </Typo>
-        </Flex>
-      </Flex>
+        </Flex.Column>
+      </Flex.Column>
 
       <View.CTA>
         <Button variant="cta" onClick={() => navigate('/')}>

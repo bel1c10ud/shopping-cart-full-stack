@@ -14,11 +14,14 @@ export interface FlexStyleProps extends SpacingStyleProps {
   gap?: SpacingToken;
 }
 
-export default function Flex<T extends HTMLElementType = 'div'>({
+type FlexProps<T extends HTMLElementType = 'div'> = { as?: T } & ComponentProps<T> & FlexStyleProps;
+type FixedDirectionFlexProps<T extends HTMLElementType = 'div'> = Omit<FlexProps<T>, 'direction'>;
+
+function FlexRoot<T extends HTMLElementType = 'div'>({
   as,
   className,
   ...props
-}: { as?: T } & ComponentProps<T> & FlexStyleProps) {
+}: FlexProps<T>) {
   const {
     direction,
     justifyContent,
@@ -40,6 +43,21 @@ export default function Flex<T extends HTMLElementType = 'div'>({
   };
   return React.createElement(as ?? 'div', { ...flexProps, className: cx(flexStyle(flexStyleProps), className) });
 }
+
+function FlexColumn<T extends HTMLElementType = 'div'>(props: FixedDirectionFlexProps<T>) {
+  return <FlexRoot {...(props as FlexProps<T>)} direction="column" />;
+}
+
+function FlexRow<T extends HTMLElementType = 'div'>(props: FixedDirectionFlexProps<T>) {
+  return <FlexRoot {...(props as FlexProps<T>)} direction="row" />;
+}
+
+const Flex = Object.assign(FlexRoot, {
+  Column: FlexColumn,
+  Row: FlexRow,
+});
+
+export default Flex;
 
 const flexStyle = (props: FlexStyleProps) => css`
   display: flex;

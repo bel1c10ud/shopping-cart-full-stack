@@ -25,7 +25,7 @@ export default function CartItem(props: { data: TCartItem }) {
   });
 
   return (
-    <Flex as="li" direction="column" gap={8} py={16}>
+    <Flex.Column as="li" gap={8} py={16}>
       <Flex justifyContent="space-between">
         <CheckBox
           checked={selectedById[cartItem.cartItemId] ?? true}
@@ -39,13 +39,13 @@ export default function CartItem(props: { data: TCartItem }) {
       <Flex justifyContent="space-between" alignItems="center">
         <Flex alignItems="center" gap={24}>
           <Image width={112} height={112} radius="l" src={cartItem.product.image} alt={cartItem.product.name} />
-          <Flex direction="column" gap={8}>
-            <Flex direction="column">
+          <Flex.Column gap={8}>
+            <Flex.Column>
               <Typo size="s">{cartItem.product.name}</Typo>
               <Typo size="xl" weight="bold">
                 {formatWon(cartItem.product.price)}
               </Typo>
-            </Flex>
+            </Flex.Column>
             <Flex alignItems="center" gap={8}>
               <Button
                 size="s"
@@ -75,9 +75,9 @@ export default function CartItem(props: { data: TCartItem }) {
                 +
               </Button>
             </Flex>
-          </Flex>
+          </Flex.Column>
         </Flex>
       </Flex>
-    </Flex>
+    </Flex.Column>
   );
 }

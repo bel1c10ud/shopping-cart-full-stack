@@ -10,7 +10,7 @@ export default function CartItemList(props: { data: TCartItem[] }) {
   const { selectedById, setAllSelected } = useCartItemSelection(props.data);
 
   return (
-    <Flex direction="column">
+    <Flex.Column>
       <Flex alignItems="center" gap={8} py={16} className={headerStyle}>
         <CheckBox
           id="check-all"
@@ -21,12 +21,12 @@ export default function CartItemList(props: { data: TCartItem[] }) {
           전체선택
         </Typo>
       </Flex>
-      <Flex as="ul" direction="column" className={listStyle}>
+      <Flex.Column as="ul" className={listStyle}>
         {props.data.map((item) => (
           <CartItem key={item.cartItemId} data={item} />
         ))}
-      </Flex>
-    </Flex>
+      </Flex.Column>
+    </Flex.Column>
   );
 }
 

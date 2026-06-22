@@ -15,13 +15,13 @@ function ViewRoot({ children, ...contentFlexProps }: ViewProps) {
   const { contents, ctas } = splitChildren(children);
 
   return (
-    <Flex direction="column" className={viewStyle}>
+    <Flex.Column className={viewStyle}>
       <Header />
-      <Flex flexGrow={1} direction="column" p={24} {...contentFlexProps} className={contentStyle}>
+      <Flex.Column flexGrow={1} p={24} {...contentFlexProps} className={contentStyle}>
         {contents}
-      </Flex>
+      </Flex.Column>
       {ctas}
-    </Flex>
+    </Flex.Column>
   );
 }
 
@@ -43,9 +43,9 @@ function splitChildren(children: ReactNode) {
 
 function ViewCTA({ children, ...props }: ViewCTAProps) {
   return (
-    <Flex direction="column" flexGrow={0} flexShrink={0} {...props}>
+    <Flex.Column flexGrow={0} flexShrink={0} {...props}>
       {children}
-    </Flex>
+    </Flex.Column>
   );
 }
 

@@ -6,11 +6,11 @@ import View from '../common/View';
 export default function CommonLoadingTemplate(props: { title: string }) {
   return (
     <View>
-      <Flex direction="column">
+      <Flex.Column>
         <Typo as="h1" size="xl" weight="bold">
           {props.title}
         </Typo>
-      </Flex>
+      </Flex.Column>
       <Flex alignItems="center" justifyContent="center" flexGrow={1}>
         <Spinner />
       </Flex>

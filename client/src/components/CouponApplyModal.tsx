@@ -136,7 +136,7 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
 
   return (
     <ModalLayout onClose={handleClose}>
-      <Flex direction="column" gap={16}>
+      <Flex.Column gap={16}>
         <Flex alignItems="center" justifyContent="space-between">
           <Typo as="h2" weight="bold">
             쿠폰을 선택해 주세요
@@ -151,7 +151,7 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
           <Typo size="s">쿠폰은 최대 2개까지 사용할 수 있습니다.</Typo>
         </Flex>
 
-        <Flex as="ul" direction="column" className={couponListStyle}>
+        <Flex.Column as="ul" className={couponListStyle}>
           {couponsQuery.status === 'loading' && (
             <Typo as="li" size="s">
               쿠폰을 불러오는 중입니다.
@@ -171,7 +171,7 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
             const checked = selectedCouponIds.includes(coupon.userCouponId);
 
             return (
-              <Flex as="li" key={coupon.userCouponId} direction="column" gap={8} py={12}>
+              <Flex.Column as="li" key={coupon.userCouponId} gap={8} py={12}>
                 <Flex alignItems="center" gap={8}>
                   <CheckBox
                     id={couponInputId}
@@ -183,7 +183,7 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
                     {coupon.name}
                   </Typo>
                 </Flex>
-                <Flex direction="column">
+                <Flex.Column>
                   <Typo size="s" color={fontColor}>
                     만료일: {formatDate(coupon.dueDate)}
                   </Typo>
@@ -198,11 +198,11 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
                       {formatTime(coupon.availableTime.endTime)}까지
                     </Typo>
                   )}
-                </Flex>
-              </Flex>
+                </Flex.Column>
+              </Flex.Column>
             );
           })}
-        </Flex>
+        </Flex.Column>
 
         {errorMessage && (
           <Typo size="s" color="red-500" align="center">
@@ -239,7 +239,7 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
             `총 ${formatWon(amount.discountAmount)} 할인 쿠폰 사용하기`
           )}
         </Button>
-      </Flex>
+      </Flex.Column>
     </ModalLayout>
   );
 }

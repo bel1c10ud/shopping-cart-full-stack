@@ -58,7 +58,7 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
 
   return (
     <View gap={24}>
-      <Flex direction="column">
+      <Flex.Column>
         <Typo as="h1" size="xl" weight="bold">
           주문 확인
         </Typo>
@@ -67,31 +67,31 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
           <br />
           최종 결제 금액을 확인해 주세요.
         </Typo>
-      </Flex>
-      <Flex as="ul" direction="column" className={itemsListStyle}>
+      </Flex.Column>
+      <Flex.Column as="ul" className={itemsListStyle}>
         {props.data.items.map((item) => (
           <Flex as="li" key={item.product.productId} alignItems="center" gap={24} py={8}>
             <Image width={112} height={112} radius="l" src={item.product.image} alt={item.product.name} />
-            <Flex direction="column" gap={8}>
-              <Flex direction="column">
+            <Flex.Column gap={8}>
+              <Flex.Column>
                 <Typo size="s">{item.product.name}</Typo>
                 <Typo size="xl" weight="bold">
                   {formatWon(item.product.price)}
                 </Typo>
-              </Flex>
+              </Flex.Column>
               <Typo as="span" size="s">
                 {item.quantity}개
               </Typo>
-            </Flex>
+            </Flex.Column>
           </Flex>
         ))}
-      </Flex>
+      </Flex.Column>
 
       <Button onClick={handleClickOpenModal} disabled={updateMutation.status === 'loading' || orderQuery.isFetching}>
         쿠폰 적용
       </Button>
 
-      <Flex direction="column" gap={10}>
+      <Flex.Column gap={10}>
         <Typo size="m" weight="bold">
           배송 정보
         </Typo>
@@ -106,13 +106,13 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
             제주도 및 도서 산간 지역
           </Typo>
         </Flex>
-      </Flex>
-      <Flex direction="column">
+      </Flex.Column>
+      <Flex.Column>
         <Flex gap={4} py={10}>
           <Image src={`${import.meta.env.BASE_URL}infomation.svg`} alt="infomation icon" />
           <Typo size="s">총 주문 금액이 {formatWon(100000)} 이상일 경우 무료 배송됩니다</Typo>
         </Flex>
-        <Flex direction="column" as="ul" className={amountSummaryListStyle}>
+        <Flex.Column as="ul" className={amountSummaryListStyle}>
           <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
             <Typo size="m" weight="bold">
               주문 금액
@@ -149,7 +149,7 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
               )}
             </Typo>
           </Flex>
-        </Flex>
+        </Flex.Column>
         <Flex as="li" alignItems="center" justifyContent="space-between" py={10}>
           <Typo size="m" weight="bold">
             총 결제 금액
@@ -167,7 +167,7 @@ export default function OrderTemplate(props: { data: OrderWithProduct }) {
             {errorMessage}
           </Typo>
         )}
-      </Flex>
+      </Flex.Column>
       <View.CTA>
         <Button
           variant="cta"

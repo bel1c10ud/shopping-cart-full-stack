@@ -27,14 +27,14 @@ export default function CartTemplate(props: { data: TCartItem[] }) {
 
   return (
     <View gap={24}>
-      <Flex direction="column">
+      <Flex.Column>
         <Typo as="h1" size="xl" weight="bold">
           장바구니
         </Typo>
         <Typo as="h2" size="s">
           현재 {props.data.length}종류의 상품이 담겨있습니다.
         </Typo>
-      </Flex>
+      </Flex.Column>
       <CartItemList data={props.data} />
       <CartAmountSummary selectedCartItems={selectedCartItems} />
       <View.CTA>

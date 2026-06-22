@@ -10,12 +10,12 @@ export default function CartAmountSummary(props: { selectedCartItems: CartItem[]
   const { orderAmount, shippingAmount, totalAmount } = useCalculateCartAmount(props.selectedCartItems);
 
   return (
-    <Flex direction="column">
+    <Flex.Column>
       <Flex gap={4} py={10} className={headerStyle}>
         <Image src={`${import.meta.env.BASE_URL}infomation.svg`} alt="infomation icon" />
         <Typo size="s">총 주문 금액이 {formatWon(100000)} 이상일 경우 무료 배송됩니다</Typo>
       </Flex>
-      <Flex as="ul" direction="column" className={listStyle}>
+      <Flex.Column as="ul" className={listStyle}>
         <Flex as="li" justifyContent="space-between" alignItems="center" py={10}>
           <Typo weight="bold">주문 금액</Typo>
           <Typo weight="bold" size="l" aria-label="주문 금액" data-value={orderAmount}>
@@ -28,14 +28,14 @@ export default function CartAmountSummary(props: { selectedCartItems: CartItem[]
             {formatWon(shippingAmount)}
           </Typo>
         </Flex>
-      </Flex>
+      </Flex.Column>
       <Flex justifyContent="space-between" py={10} className={footerStyle}>
         <Typo weight="bold">총 결제 금액</Typo>
         <Typo weight="bold" size="l" aria-label="총 결제 금액" data-value={totalAmount}>
           {formatWon(totalAmount)}
         </Typo>
       </Flex>
-    </Flex>
+    </Flex.Column>
   );
 }
 

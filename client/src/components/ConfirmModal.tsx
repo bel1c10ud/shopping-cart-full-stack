@@ -22,13 +22,13 @@ export default function ConfirmModal({
 }: ConfirmModalProps) {
   return (
     <ModalLayout>
-      <Flex direction="column" gap={16}>
-        <Flex direction="column" gap={8}>
+      <Flex.Column gap={16}>
+        <Flex.Column gap={8}>
           <Typo as="h2" weight="bold">
             {title}
           </Typo>
           <Typo size="s">{description}</Typo>
-        </Flex>
+        </Flex.Column>
 
         <Flex justifyContent="flex-end" gap={8}>
           <Button onClick={onCancel}>{cancelText}</Button>
@@ -36,7 +36,7 @@ export default function ConfirmModal({
             {confirmText}
           </Button>
         </Flex>
-      </Flex>
+      </Flex.Column>
     </ModalLayout>
   );
 }
