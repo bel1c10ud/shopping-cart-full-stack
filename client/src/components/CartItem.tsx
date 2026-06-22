@@ -1,6 +1,5 @@
 import type { CartItem as TCartItem } from '../types';
 import { formatWon } from '../utils';
-import useCartItemSelection from '../hooks/useCartItemSelection';
 import useDeleteCartItemMutation from '../hooks/mutations/useDeleteCartItemMutation';
 import useUpdateCartItemMutation from '../hooks/mutations/useUpdateCartItemMutation';
 import Flex from './common/Flex';
@@ -11,8 +10,6 @@ import Image from './common/Image';
 
 export default function CartItem(props: { data: TCartItem }) {
   const cartItem = props.data;
-
-  const { selectedById, setSelected } = useCartItemSelection();
 
   const updateCartItemQuantityMutation = useUpdateCartItemMutation({
     onFail: () => alert('장바구니 수량 변경에 실패했어요'),
@@ -28,8 +25,13 @@ export default function CartItem(props: { data: TCartItem }) {
     <Flex.Column as="li" gap={8} py={16}>
       <Flex justifyContent="space-between">
         <CheckBox
-          checked={selectedById[cartItem.cartItemId] ?? true}
-          onChange={(checked) => setSelected(cartItem.cartItemId, checked)}
+          checked={cartItem.isSelected}
+          onChange={(checked) =>
+            updateCartItemQuantityMutation.mutate({
+              cartItemId: cartItem.cartItemId,
+              isSelected: checked,
+            })
+          }
         />
         <Button size="s" onClick={() => deleteCartItemMutation.mutate(cartItem.cartItemId)}>
           삭제

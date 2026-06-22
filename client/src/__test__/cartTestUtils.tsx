@@ -9,6 +9,7 @@ import OrderCompletePage from '../pages/OrderCompletePage';
 export const createCartItems = (): CartItem[] => [
   {
     cartItemId: '1',
+    isSelected: true,
     quantity: 2,
     product: {
       productId: 'a',
@@ -20,6 +21,7 @@ export const createCartItems = (): CartItem[] => [
   },
   {
     cartItemId: '2',
+    isSelected: true,
     quantity: 1,
     product: {
       productId: 'b',

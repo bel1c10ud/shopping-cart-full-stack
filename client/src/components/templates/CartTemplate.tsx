@@ -1,6 +1,4 @@
-import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import useCartItemSelection from '../../hooks/useCartItemSelection';
 import type { CartItem as TCartItem } from '../../types';
 import Typo from '../common/Typo';
 import Flex from '../common/Flex';
@@ -19,11 +17,7 @@ export default function CartTemplate(props: { data: TCartItem[] }) {
     },
   });
 
-  const { selectedById } = useCartItemSelection(props.data);
-
-  const selectedCartItems = useMemo(() => {
-    return props.data.filter((cartItem) => selectedById[cartItem.cartItemId]);
-  }, [props.data, selectedById]);
+  const selectedCartItems = props.data.filter((cartItem) => cartItem.isSelected);
 
   return (
     <View gap={24}>
@@ -36,7 +30,7 @@ export default function CartTemplate(props: { data: TCartItem[] }) {
         </Typo>
       </Flex.Column>
       <CartItemList data={props.data} />
-      <CartAmountSummary selectedCartItems={selectedCartItems} />
+      <CartAmountSummary />
       <View.CTA>
         <Button
           variant="cta"
@@ -48,7 +42,7 @@ export default function CartTemplate(props: { data: TCartItem[] }) {
               })),
             );
           }}
-          disabled={!Object.entries(selectedById).some((el) => el[1])}
+          disabled={selectedCartItems.length === 0}
         >
           주문 확인
         </Button>

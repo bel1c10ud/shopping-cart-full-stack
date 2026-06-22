@@ -2,7 +2,13 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import type { CartItem } from '../types';
-import { getCartHandler, updateCartQuantityErrorHandler, updateCartQuantityHandler } from './cartHandlers';
+import {
+  calculateCartAmount,
+  getCartAmountHandler,
+  getCartHandler,
+  updateCartQuantityErrorHandler,
+  updateCartQuantityHandler,
+} from './cartHandlers';
 import { createCartItems, renderCartPage } from './cartTestUtils';
 
 const CART_API_URL = `${import.meta.env.VITE_API_URL}/cart`;
@@ -18,8 +24,10 @@ describe('CartPage 수량 변경', () => {
         mockCartItems,
         (cartItems) => {
           mockCartItems = cartItems;
+          server.use(getCartHandler(mockCartItems), getCartAmountHandler(calculateCartAmount(mockCartItems)));
         },
       ),
+      getCartAmountHandler(calculateCartAmount(mockCartItems)),
     );
   });
 

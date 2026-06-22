@@ -8,6 +8,7 @@ export interface Product {
 
 export interface CartItem {
   cartItemId: string;
+  isSelected: boolean;
   quantity: number;
   product: Product;
 }

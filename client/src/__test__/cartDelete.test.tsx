@@ -1,8 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { server } from '../mocks/server';
-import { CART_SELECT_LOCAL_STORAGE_KEY } from '../hooks/useCartItemSelection';
 import type { CartItem } from '../types';
-import { deleteCartItemErrorHandler, deleteCartItemHandler, getCartHandler } from './cartHandlers';
+import { calculateCartAmount, deleteCartItemErrorHandler, deleteCartItemHandler, getCartAmountHandler, getCartHandler } from './cartHandlers';
 import { createCartItems, renderCartPage } from './cartTestUtils';
 
 describe('CartPage 삭제', () => {
@@ -16,8 +15,10 @@ describe('CartPage 삭제', () => {
         mockCartItems,
         (cartItems) => {
           mockCartItems = cartItems;
+          server.use(getCartHandler(mockCartItems), getCartAmountHandler(calculateCartAmount(mockCartItems)));
         },
       ),
+      getCartAmountHandler(calculateCartAmount(mockCartItems)),
     );
   });
 
@@ -60,10 +61,15 @@ describe('CartPage 삭제', () => {
     });
   });
 
-  it('제거된 상품을 화면과 선택 상태에서 제거하고 선택 정보도 함께 제거한다', async () => {
-    localStorage.clear();
-    localStorage.setItem(CART_SELECT_LOCAL_STORAGE_KEY, JSON.stringify({ '1': true, '2': true }));
-
+  it('제거된 상품을 화면에서 제거하고 서버 금액을 다시 조회한다', async () => {
+    const requestCartAmount = vi.fn();
+    server.use(
+      deleteCartItemHandler(mockCartItems, (cartItems) => {
+        mockCartItems = cartItems;
+        server.use(getCartHandler(mockCartItems), getCartAmountHandler(calculateCartAmount(mockCartItems), requestCartAmount));
+      }),
+      getCartAmountHandler(calculateCartAmount(mockCartItems), requestCartAmount),
+    );
     renderCartPage();
     await screen.findByText('상품이름A');
 
@@ -77,10 +83,7 @@ describe('CartPage 삭제', () => {
     });
 
     await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem(CART_SELECT_LOCAL_STORAGE_KEY) || '{}');
-
-      expect(stored['1']).toBeUndefined();
-      expect(stored['2']).toBe(true);
+      expect(requestCartAmount).toHaveBeenCalledTimes(2);
     });
   });
 

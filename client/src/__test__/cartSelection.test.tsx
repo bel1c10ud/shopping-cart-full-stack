@@ -1,8 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { server } from '../mocks/server';
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from '../hooks/useCalculateCartAmount';
 import type { CartItem } from '../types';
-import { getCartHandler, updateCartQuantityHandler } from './cartHandlers';
+import { calculateCartAmount, getCartAmountHandler, getCartHandler, updateCartItemHandler } from './cartHandlers';
 import { createCartItems, renderCartPage } from './cartTestUtils';
 
 describe('CartPage 선택과 금액 계산', () => {
@@ -10,7 +9,7 @@ describe('CartPage 선택과 금액 계산', () => {
 
   beforeEach(() => {
     mockCartItems = createCartItems();
-    server.use(getCartHandler(mockCartItems));
+    server.use(getCartHandler(mockCartItems), getCartAmountHandler(calculateCartAmount(mockCartItems)));
   });
 
   it('장바구니 페이지에 진입하면 `GET /cart` API를 호출한다', async () => {
@@ -49,8 +48,6 @@ describe('CartPage 선택과 금액 계산', () => {
   });
 
   it('진입 시 모든 상품을 선택된 상태로 표시한다', async () => {
-    localStorage.clear();
-
     renderCartPage();
 
     await screen.findByText('상품이름A');
@@ -65,7 +62,12 @@ describe('CartPage 선택과 금액 계산', () => {
   });
 
   it('개별 상품을 선택하거나 선택 해제할 수 있다', async () => {
-    localStorage.clear();
+    server.use(
+      updateCartItemHandler(mockCartItems, (cartItems) => {
+        mockCartItems = cartItems;
+        server.use(getCartHandler(mockCartItems), getCartAmountHandler(calculateCartAmount(mockCartItems)));
+      }),
+    );
 
     renderCartPage();
 
@@ -80,15 +82,24 @@ describe('CartPage 선택과 금액 계산', () => {
     expect(checkboxB).toBeChecked();
 
     fireEvent.click(checkboxA);
-    expect(checkboxA).not.toBeChecked();
+    await waitFor(() => {
+      expect(checkboxA).not.toBeChecked();
+    });
     expect(checkboxB).toBeChecked();
 
     fireEvent.click(checkboxA);
-    expect(checkboxA).toBeChecked();
+    await waitFor(() => {
+      expect(checkboxA).toBeChecked();
+    });
   });
 
   it('전체 상품을 한 번에 선택하거나 선택 해제할 수 있다', async () => {
-    localStorage.clear();
+    server.use(
+      updateCartItemHandler(mockCartItems, (cartItems) => {
+        mockCartItems = cartItems;
+        server.use(getCartHandler(mockCartItems), getCartAmountHandler(calculateCartAmount(mockCartItems)));
+      }),
+    );
 
     renderCartPage();
 
@@ -105,59 +116,65 @@ describe('CartPage 선택과 금액 계산', () => {
     expect(checkboxB).toBeChecked();
 
     fireEvent.click(selectAllCheckbox);
-    expect(selectAllCheckbox).not.toBeChecked();
-    expect(checkboxA).not.toBeChecked();
-    expect(checkboxB).not.toBeChecked();
+    await waitFor(() => {
+      expect(selectAllCheckbox).not.toBeChecked();
+      expect(checkboxA).not.toBeChecked();
+      expect(checkboxB).not.toBeChecked();
+    });
 
     fireEvent.click(selectAllCheckbox);
-    expect(selectAllCheckbox).toBeChecked();
-    expect(checkboxA).toBeChecked();
-    expect(checkboxB).toBeChecked();
+    await waitFor(() => {
+      expect(selectAllCheckbox).toBeChecked();
+      expect(checkboxA).toBeChecked();
+      expect(checkboxB).toBeChecked();
+    });
   });
 
-  it('상품 선택 여부는 새로고침 후에도 유지한다', async () => {
-    localStorage.clear();
+  it('상품 선택 여부는 서버 응답 기준으로 표시한다', async () => {
+    mockCartItems[0].isSelected = false;
+    server.use(getCartHandler(mockCartItems), getCartAmountHandler(calculateCartAmount(mockCartItems)));
 
-    const { unmount } = renderCartPage();
+    renderCartPage();
 
     await screen.findByText('상품이름A');
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
     const checkboxA = within(itemA).getByRole('checkbox');
+    const itemB = screen.getByText('상품이름B').closest('li')!;
+    const checkboxB = within(itemB).getByRole('checkbox');
 
-    fireEvent.click(checkboxA);
     expect(checkboxA).not.toBeChecked();
+    expect(checkboxB).toBeChecked();
+  });
 
-    unmount();
+  it('장바구니 결제 금액 API를 호출하고 서버가 계산한 금액을 표시한다', async () => {
+    const requestCartAmount = vi.fn();
+    server.use(
+      getCartAmountHandler(
+        {
+          orderAmount: 95000,
+          shippingAmount: 3000,
+          discountAmount: 0,
+          totalAmount: 98000,
+        },
+        requestCartAmount,
+      ),
+    );
+
     renderCartPage();
 
     await screen.findByText('상품이름A');
 
-    const itemARefreshed = screen.getByText('상품이름A').closest('li')!;
-    const checkboxARefreshed = within(itemARefreshed).getByRole('checkbox');
-    const itemBRefreshed = screen.getByText('상품이름B').closest('li')!;
-    const checkboxBRefreshed = within(itemBRefreshed).getByRole('checkbox');
+    await waitFor(() => {
+      expect(requestCartAmount).toHaveBeenCalled();
+    });
 
-    expect(checkboxARefreshed).not.toBeChecked();
-    expect(checkboxBRefreshed).toBeChecked();
+    expect(screen.getByLabelText('주문 금액')).toHaveAttribute('data-value', '95000');
+    expect(screen.getByLabelText('배송비')).toHaveAttribute('data-value', '3000');
+    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', '98000');
   });
 
-  it(`선택된 상품의 가격과 수량을 기준으로 결제 금액을 계산한다 (${FREE_SHIPPING_THRESHOLD.toLocaleString()}원 미만 시 배송비 ${SHIPPING_FEE.toLocaleString()}원)`, async () => {
-    localStorage.clear();
-
-    renderCartPage();
-
-    await screen.findByText('상품이름A');
-
-    const orderAmount = 95_000;
-    const totalAmount = orderAmount + SHIPPING_FEE;
-
-    expect(screen.getByLabelText('주문 금액')).toHaveAttribute('data-value', orderAmount.toString());
-    expect(screen.getByLabelText('배송비')).toHaveAttribute('data-value', SHIPPING_FEE.toString());
-    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', totalAmount.toString());
-  });
-
-  it(`결제 금액이 ${FREE_SHIPPING_THRESHOLD.toLocaleString()}원 이상이면 배송비를 무료(0원)로 표시한다`, async () => {
+  it('서버가 무료 배송으로 계산한 금액을 표시한다', async () => {
     const expensiveCartItems = [
       {
         ...mockCartItems[0],
@@ -165,9 +182,7 @@ describe('CartPage 선택과 금액 계산', () => {
       },
     ];
 
-    server.use(getCartHandler(expensiveCartItems));
-
-    localStorage.clear();
+    server.use(getCartHandler(expensiveCartItems), getCartAmountHandler(calculateCartAmount(expensiveCartItems)));
 
     renderCartPage();
 
@@ -182,35 +197,30 @@ describe('CartPage 선택과 금액 계산', () => {
     const patchHandler = vi.fn();
 
     server.use(
-      updateCartQuantityHandler(
+      updateCartItemHandler(
         mockCartItems,
         (cartItems) => {
           mockCartItems = cartItems;
+          server.use(getCartHandler(mockCartItems), getCartAmountHandler(calculateCartAmount(mockCartItems)));
         },
         patchHandler,
       ),
     );
 
-    localStorage.clear();
-
     renderCartPage();
 
     await screen.findByText('상품이름A');
 
-    const initialOrderAmount = 95_000;
-    const initialTotalAmount = initialOrderAmount + SHIPPING_FEE;
-
-    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', initialTotalAmount.toString());
+    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', '98000');
 
     const itemB = screen.getByText('상품이름B').closest('li')!;
     const checkboxB = within(itemB).getByRole('checkbox');
 
     fireEvent.click(checkboxB);
-    const selectedOrderAmount = 70_000;
-    const selectedTotalAmount = selectedOrderAmount + SHIPPING_FEE;
-
-    expect(screen.getByLabelText('주문 금액')).toHaveAttribute('data-value', selectedOrderAmount.toString());
-    expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', selectedTotalAmount.toString());
+    await waitFor(() => {
+      expect(screen.getByLabelText('주문 금액')).toHaveAttribute('data-value', '70000');
+      expect(screen.getByLabelText('총 결제 금액')).toHaveAttribute('data-value', '73000');
+    });
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
     const plusButton = within(itemA).getByRole('button', { name: '+' });
@@ -227,7 +237,12 @@ describe('CartPage 선택과 금액 계산', () => {
   });
 
   it('선택된 상품이 있으면 주문 확인 버튼을 활성화하고 없으면 비활성화한다', async () => {
-    localStorage.clear();
+    server.use(
+      updateCartItemHandler(mockCartItems, (cartItems) => {
+        mockCartItems = cartItems;
+        server.use(getCartHandler(mockCartItems), getCartAmountHandler(calculateCartAmount(mockCartItems)));
+      }),
+    );
 
     renderCartPage();
 
@@ -238,11 +253,15 @@ describe('CartPage 선택과 금액 계산', () => {
 
     const selectAllCheckbox = screen.getAllByRole('checkbox')[0];
     fireEvent.click(selectAllCheckbox);
-    expect(checkoutButton).toBeDisabled();
+    await waitFor(() => {
+      expect(checkoutButton).toBeDisabled();
+    });
 
     const itemA = screen.getByText('상품이름A').closest('li')!;
     const checkboxA = within(itemA).getByRole('checkbox');
     fireEvent.click(checkboxA);
-    expect(checkoutButton).toBeEnabled();
+    await waitFor(() => {
+      expect(checkoutButton).toBeEnabled();
+    });
   });
 });

@@ -1,10 +1,9 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { server } from '../mocks/server';
 import type { CartItem } from '../types';
-import { getCartHandler } from './cartHandlers';
+import { calculateCartAmount, getCartAmountHandler, getCartHandler } from './cartHandlers';
 import { createCartItems, renderCartPage } from './cartTestUtils';
 import { createOrder, createOrderHandler, getOrderHandler } from './orderHandlers';
-import { CART_SELECT_LOCAL_STORAGE_KEY } from '../hooks/useCartItemSelection';
 
 describe('CartPage 주문 이동', () => {
   let mockCartItems: CartItem[];
@@ -12,12 +11,15 @@ describe('CartPage 주문 이동', () => {
   beforeEach(() => {
     mockCartItems = createCartItems();
     const order = createOrder();
-    server.use(getCartHandler(mockCartItems), createOrderHandler(order), getOrderHandler(order));
+    server.use(
+      getCartHandler(mockCartItems),
+      getCartAmountHandler(calculateCartAmount(mockCartItems)),
+      createOrderHandler(order),
+      getOrderHandler(order),
+    );
   });
 
   it('주문 확인 버튼을 누르면 주문 생성 API를 호출하고 주문 확인 페이지로 이동한다', async () => {
-    localStorage.clear();
-
     renderCartPage();
 
     await screen.findByText('상품이름A');
@@ -48,9 +50,13 @@ describe('CartPage 주문 이동', () => {
       },
     });
 
-    localStorage.clear();
-    localStorage.setItem(CART_SELECT_LOCAL_STORAGE_KEY, JSON.stringify({ '1': false, '2': true }));
-    server.use(createOrderHandler(order, createOrderRequest), getOrderHandler(order));
+    mockCartItems[0].isSelected = false;
+    server.use(
+      getCartHandler(mockCartItems),
+      getCartAmountHandler(calculateCartAmount(mockCartItems)),
+      createOrderHandler(order, createOrderRequest),
+      getOrderHandler(order),
+    );
 
     renderCartPage();
 
@@ -63,8 +69,6 @@ describe('CartPage 주문 이동', () => {
   });
 
   it('주문 확인 페이지에서 뒤로가기 버튼을 누르면 장바구니 페이지로 이동한다', async () => {
-    localStorage.clear();
-
     renderCartPage();
 
     await screen.findByText('상품이름A');

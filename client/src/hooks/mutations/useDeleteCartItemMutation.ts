@@ -1,4 +1,5 @@
 import type { APIResponse, CartItem } from '../../types';
+import { CART_AMOUNT_QUERY_KEY, fetchCartAmount } from '../queries/useCartAmountQuery';
 import useCartItemsQuery from '../queries/useCartItemsQuery';
 import useQueryCache from '../useQueryCache';
 import useMutation from './useMutation';
@@ -52,7 +53,16 @@ export default function useDeleteCartItemMutation(option?: DeleteCartItemMutatio
       };
     },
     onSettled: async () => {
-      await cartItemsQuery.refetch();
+      const [, cartAmountResponse] = await Promise.all([cartItemsQuery.refetch(), fetchCartAmount(CART_AMOUNT_QUERY_KEY)]);
+
+      if (cartAmountResponse.status === 'success') {
+        setCache(CART_AMOUNT_QUERY_KEY, {
+          status: 'success',
+          data: cartAmountResponse.data,
+          fail: null,
+          error: null,
+        });
+      }
     },
     onSuccess: async (data) => {
       await option?.onSuccess?.(data);

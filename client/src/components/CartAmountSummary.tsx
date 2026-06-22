@@ -1,13 +1,21 @@
 import { css } from '@emotion/css';
-import type { CartItem } from '../types';
+import useCartAmountQuery from '../hooks/queries/useCartAmountQuery';
 import { formatWon } from '../utils';
-import useCalculateCartAmount from '../hooks/useCalculateCartAmount';
 import Flex from './common/Flex';
 import Image from './common/Image';
+import Spinner from './common/Spinner';
 import Typo from './common/Typo';
 
-export default function CartAmountSummary(props: { selectedCartItems: CartItem[] }) {
-  const { orderAmount, shippingAmount, totalAmount } = useCalculateCartAmount(props.selectedCartItems);
+const emptyAmount = {
+  orderAmount: 0,
+  shippingAmount: 0,
+  discountAmount: 0,
+  totalAmount: 0,
+};
+
+export default function CartAmountSummary() {
+  const cartAmountQuery = useCartAmountQuery();
+  const amount = cartAmountQuery.data ?? emptyAmount;
 
   return (
     <Flex.Column>
@@ -18,21 +26,29 @@ export default function CartAmountSummary(props: { selectedCartItems: CartItem[]
       <Flex.Column as="ul" className={listStyle}>
         <Flex as="li" justifyContent="space-between" alignItems="center" py={10}>
           <Typo weight="bold">주문 금액</Typo>
-          <Typo weight="bold" size="l" aria-label="주문 금액" data-value={orderAmount}>
-            {formatWon(orderAmount)}
+          <Typo weight="bold" size="l" aria-label="주문 금액" data-value={amount.orderAmount}>
+            {cartAmountQuery.isFetching ? (
+              <Spinner size="s" aria-label="주문 금액 갱신 중" />
+            ) : (
+              formatWon(amount.orderAmount)
+            )}
           </Typo>
         </Flex>
         <Flex as="li" justifyContent="space-between" alignItems="center" py={10}>
           <Typo weight="bold">배송비</Typo>
-          <Typo weight="bold" size="l" aria-label="배송비" data-value={shippingAmount}>
-            {formatWon(shippingAmount)}
+          <Typo weight="bold" size="l" aria-label="배송비" data-value={amount.shippingAmount}>
+            {cartAmountQuery.isFetching ? <Spinner size="s" aria-label="배송비 갱신 중" /> : formatWon(amount.shippingAmount)}
           </Typo>
         </Flex>
       </Flex.Column>
       <Flex justifyContent="space-between" py={10} className={footerStyle}>
         <Typo weight="bold">총 결제 금액</Typo>
-        <Typo weight="bold" size="l" aria-label="총 결제 금액" data-value={totalAmount}>
-          {formatWon(totalAmount)}
+        <Typo weight="bold" size="l" aria-label="총 결제 금액" data-value={amount.totalAmount}>
+          {cartAmountQuery.isFetching ? (
+            <Spinner size="s" aria-label="총 결제 금액 갱신 중" />
+          ) : (
+            formatWon(amount.totalAmount)
+          )}
         </Typo>
       </Flex>
     </Flex.Column>
