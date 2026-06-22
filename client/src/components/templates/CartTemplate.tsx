@@ -42,7 +42,7 @@ export default function CartTemplate(props: { data: TCartItem[] }) {
           variant="cta"
           onClick={() => {
             createOrder.mutate(
-              props.data.map((item) => ({
+              selectedCartItems.map((item) => ({
                 productId: item.product.productId,
                 quantity: item.quantity,
               })),
