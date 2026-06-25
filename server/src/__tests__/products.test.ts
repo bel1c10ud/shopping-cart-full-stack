@@ -267,6 +267,7 @@ describe('상품', () => {
     cartItems.set('1', {
       cartItemId: '1',
       productId: '1',
+      isSelected: true,
       quantity: 1,
     });
 
