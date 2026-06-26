@@ -1,6 +1,7 @@
 import { CouponUnavailableError } from '../errors';
 import { calculateOrderProductsAmount, getAppliedCoupons, getAppliedIssuedCoupons } from './orderResolver';
 import { Coupon, Order, Product, UserCoupon } from '../types';
+import { formatServerLocalDate } from '../util';
 
 interface CouponValidatorValidateParams {
   order: Order;
@@ -84,7 +85,7 @@ class CouponValidator {
   }
 
   private isExpiredCoupon(coupon: Coupon, now: Date) {
-    const today = now.toISOString().slice(0, 10);
+    const today = formatServerLocalDate(now);
 
     return coupon.expiresAt < today;
   }
