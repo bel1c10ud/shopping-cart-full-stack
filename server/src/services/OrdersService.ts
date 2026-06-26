@@ -1,7 +1,5 @@
 import {
   CouponNotFoundError,
-  CouponTypeLimitError,
-  CouponUnavailableError,
   OrderNotFoundError,
   ProductNotFoundError,
 } from '../errors';
@@ -93,7 +91,7 @@ class OrdersService implements OrdersServicePort {
       const userCoupons = await this.couponsRepository.getUserCoupons();
       const orderToValidate = { ...order, ...orderPartial };
 
-      this.couponValidator.validate({
+      this.couponValidator.validateOrThrow({
         order: orderToValidate,
         products,
         issuedCoupons: userCoupons,
@@ -119,7 +117,7 @@ class OrdersService implements OrdersServicePort {
     const userCoupons = await this.couponsRepository.getUserCoupons();
 
     if (orderPartial.couponIds) {
-      this.couponValidator.validate({
+      this.couponValidator.validateOrThrow({
         order: orderPreview,
         products,
         issuedCoupons: userCoupons,
@@ -233,17 +231,13 @@ class OrdersService implements OrdersServicePort {
     userCoupons: Awaited<ReturnType<CouponsRepository['getUserCoupons']>>;
     couponIds: string[];
   }) {
-    try {
-      const orderPreview = { ...order, couponIds };
+    const orderPreview = { ...order, couponIds };
 
-      this.couponValidator.validate({ order: orderPreview, products, issuedCoupons: userCoupons, coupons });
-
-      return this.orderAmountCalculator.calculate({ order: orderPreview, products, issuedCoupons: userCoupons, coupons });
-    } catch (error) {
-      if (error instanceof CouponUnavailableError || error instanceof CouponTypeLimitError) return null;
-
-      throw error;
+    if (!this.couponValidator.isValid({ order: orderPreview, products, issuedCoupons: userCoupons, coupons })) {
+      return null;
     }
+
+    return this.orderAmountCalculator.calculate({ order: orderPreview, products, issuedCoupons: userCoupons, coupons });
   }
 
   private isDisabledCoupon({
@@ -261,20 +255,12 @@ class OrdersService implements OrdersServicePort {
 
     if (!userCoupon) return true;
 
-    try {
-      this.couponValidator.validate({
-        order: { ...order, couponIds: [userCoupon.userCouponId] },
-        products,
-        issuedCoupons: [userCoupon],
-        coupons: [coupon],
-      });
-
-      return false;
-    } catch (error) {
-      if (error instanceof CouponUnavailableError || error instanceof CouponTypeLimitError) return true;
-
-      throw error;
-    }
+    return !this.couponValidator.isValid({
+      order: { ...order, couponIds: [userCoupon.userCouponId] },
+      products,
+      issuedCoupons: [userCoupon],
+      coupons: [coupon],
+    });
   }
 }
 

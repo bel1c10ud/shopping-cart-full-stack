@@ -11,18 +11,63 @@ interface CouponValidatorValidateParams {
   now?: Date;
 }
 
+type CouponValidationResult =
+  | { isValid: true }
+  | { isValid: false; reason: 'COUPON_UNAVAILABLE'; couponId: Coupon['couponId'] | UserCoupon['userCouponId'] }
+  | {
+      isValid: false;
+      reason: 'COUPON_TYPE_LIMIT_EXCEEDED';
+      couponType: Coupon['couponType'];
+      couponIds: Coupon['couponId'][];
+    };
+
 class CouponValidator {
-  validate({ order, products, issuedCoupons, coupons, now = new Date() }: CouponValidatorValidateParams) {
+  validateOrThrow(params: CouponValidatorValidateParams) {
+    const result = this.validate(params);
+
+    if (result.isValid) return;
+
+    if (result.reason === 'COUPON_TYPE_LIMIT_EXCEEDED') {
+      throw new CouponTypeLimitError(result.couponType, result.couponIds);
+    }
+
+    throw new CouponUnavailableError(result.couponId);
+  }
+
+  isValid(params: CouponValidatorValidateParams) {
+    return this.validate(params).isValid;
+  }
+
+  validate({
+    order,
+    products,
+    issuedCoupons,
+    coupons,
+    now = new Date(),
+  }: CouponValidatorValidateParams): CouponValidationResult {
     const appliedIssuedCoupons = getAppliedIssuedCoupons({ order, issuedCoupons });
     const appliedCoupons = getAppliedCoupons({ issuedCoupons: appliedIssuedCoupons, coupons });
     const orderAmount = calculateOrderProductsAmount({ order, products });
+    const issuedCouponStateResult = this.checkIssuedCouponState({
+      issuedCoupons: appliedIssuedCoupons,
+      coupons: appliedCoupons,
+      now,
+    });
 
-    this.validateIssuedCouponState({ issuedCoupons: appliedIssuedCoupons, coupons: appliedCoupons, now });
-    this.validateCouponTypeLimit(appliedCoupons);
-    this.validateOrderCondition({ coupons: appliedCoupons, order, orderAmount, now });
+    if (!issuedCouponStateResult.isValid) return issuedCouponStateResult;
+
+    const couponTypeLimitResult = this.checkCouponTypeLimit(appliedCoupons);
+
+    if (!couponTypeLimitResult.isValid) return couponTypeLimitResult;
+
+    const orderConditionResult = this.checkOrderCondition({ coupons: appliedCoupons, order, orderAmount, now });
+
+    if (!orderConditionResult.isValid) return orderConditionResult;
+
+    return { isValid: true };
   }
 
-  private validateIssuedCouponState({
+  private checkIssuedCouponState({
     issuedCoupons,
     coupons,
     now,
@@ -34,36 +79,48 @@ class CouponValidator {
     for (const issuedCoupon of issuedCoupons) {
       const coupon = coupons.find((coupon) => coupon.couponId === issuedCoupon.couponId);
 
-      if (!coupon) throw new CouponUnavailableError(issuedCoupon.userCouponId);
-      if (!this.isUsableUserCoupon(issuedCoupon)) throw new CouponUnavailableError(coupon.couponId);
-      if (this.isExpiredCoupon(coupon, now)) throw new CouponUnavailableError(coupon.couponId);
+      if (!coupon) return { isValid: false, reason: 'COUPON_UNAVAILABLE', couponId: issuedCoupon.userCouponId } as const;
+      if (!this.isUsableUserCoupon(issuedCoupon)) {
+        return { isValid: false, reason: 'COUPON_UNAVAILABLE', couponId: coupon.couponId } as const;
+      }
+      if (this.isExpiredCoupon(coupon, now)) {
+        return { isValid: false, reason: 'COUPON_UNAVAILABLE', couponId: coupon.couponId } as const;
+      }
     }
+
+    return { isValid: true } as const;
   }
 
-  private validateCouponTypeLimit(coupons: Coupon[]) {
+  private checkCouponTypeLimit(coupons: Coupon[]): CouponValidationResult {
     const amountCoupons = coupons.filter((coupon) => coupon.couponType === 'AMOUNT');
     const percentCoupons = coupons.filter((coupon) => coupon.couponType === 'PERCENT');
 
     if (amountCoupons.length > 1) {
-      throw new CouponTypeLimitError(
-        'AMOUNT',
-        amountCoupons.map((coupon) => coupon.couponId),
-      );
+      return {
+        isValid: false,
+        reason: 'COUPON_TYPE_LIMIT_EXCEEDED',
+        couponType: 'AMOUNT',
+        couponIds: amountCoupons.map((coupon) => coupon.couponId),
+      };
     }
 
     if (percentCoupons.length > 1) {
-      throw new CouponTypeLimitError(
-        'PERCENT',
-        percentCoupons.map((coupon) => coupon.couponId),
-      );
+      return {
+        isValid: false,
+        reason: 'COUPON_TYPE_LIMIT_EXCEEDED',
+        couponType: 'PERCENT',
+        couponIds: percentCoupons.map((coupon) => coupon.couponId),
+      };
     }
+
+    return { isValid: true };
   }
 
   private isUsableUserCoupon(userCoupon: UserCoupon) {
     return !userCoupon.usedAt && !userCoupon.usedOrderId;
   }
 
-  private validateOrderCondition({
+  private checkOrderCondition({
     coupons,
     order,
     orderAmount,
@@ -76,13 +133,17 @@ class CouponValidator {
   }) {
     for (const coupon of coupons) {
       if (coupon.minOrderAmount !== null && orderAmount < coupon.minOrderAmount) {
-        throw new CouponUnavailableError(coupon.couponId);
+        return { isValid: false, reason: 'COUPON_UNAVAILABLE', couponId: coupon.couponId } as const;
       }
       if (!this.isSatisfiedItemCount(coupon, order)) {
-        throw new CouponUnavailableError(coupon.couponId);
+        return { isValid: false, reason: 'COUPON_UNAVAILABLE', couponId: coupon.couponId } as const;
       }
-      if (!this.isCouponAvailableTime(coupon, now)) throw new CouponUnavailableError(coupon.couponId);
+      if (!this.isCouponAvailableTime(coupon, now)) {
+        return { isValid: false, reason: 'COUPON_UNAVAILABLE', couponId: coupon.couponId } as const;
+      }
     }
+
+    return { isValid: true } as const;
   }
 
   private isSatisfiedItemCount(coupon: Coupon, order: Order) {
