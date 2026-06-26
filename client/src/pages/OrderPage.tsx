@@ -5,11 +5,9 @@ import CommonErrorTemplate from '../components/templates/CommonErrorTemplate';
 import CommonLoadingTemplate from '../components/templates/CommonLoadingTemplate';
 
 export default function OrderPage() {
-  const { orderId } = useParams();
+  const { orderId } = useParams<{ orderId: string }>();
 
-  if (orderId === undefined) return <CommonErrorTemplate title="주문 확인" />;
-
-  const orderQuery = useOrderQuery(orderId);
+  const orderQuery = useOrderQuery(orderId!);
 
   if (orderQuery.status === 'idle' || orderQuery.status === 'loading')
     return <CommonLoadingTemplate title="주문 확인" />;
