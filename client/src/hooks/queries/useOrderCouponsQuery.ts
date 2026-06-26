@@ -1,15 +1,6 @@
-import type { APIResponse, OrderCoupon } from '../../types';
+import type { OrderCoupon } from '../../types';
+import { isAPIResponse } from '../../utils';
 import useQuery from './useQuery';
-
-const isAPIResponse = <T>(value: unknown): value is APIResponse<T> => {
-  if (typeof value !== 'object' || value === null || !('status' in value)) return false;
-
-  if (value.status === 'success') return 'data' in value;
-  if (value.status === 'fail') return 'data' in value;
-  if (value.status === 'error') return 'message' in value;
-
-  return false;
-};
 
 export default function useOrderCouponsQuery(orderId: string) {
   return useQuery({

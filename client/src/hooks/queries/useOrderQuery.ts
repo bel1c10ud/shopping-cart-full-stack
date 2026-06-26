@@ -1,4 +1,5 @@
-import type { APIResponse, OrderWithProduct } from '../../types';
+import type { OrderWithProduct } from '../../types';
+import { isAPIResponse } from '../../utils';
 import useQuery from './useQuery';
 
 interface OrderQueryOption {
@@ -7,16 +8,6 @@ interface OrderQueryOption {
   onFail?: (fail: Record<string, string>) => Promise<void> | void;
   onError?: (error: Error) => Promise<void> | void;
 }
-
-const isAPIResponse = <T>(value: unknown): value is APIResponse<T> => {
-  if (typeof value !== 'object' || value === null || !('status' in value)) return false;
-
-  if (value.status === 'success') return 'data' in value;
-  if (value.status === 'fail') return 'data' in value;
-  if (value.status === 'error') return 'message' in value;
-
-  return false;
-};
 
 export default function useOrderQuery(orderId: string, option?: OrderQueryOption) {
   return useQuery({
