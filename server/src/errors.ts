@@ -63,3 +63,13 @@ export class CouponUnavailableError extends Error {
     this.name = 'CouponUnavailableError';
   }
 }
+
+export class CouponTypeLimitError extends Error {
+  constructor(
+    public readonly couponType: 'AMOUNT' | 'PERCENT',
+    public readonly couponIds: string[],
+  ) {
+    super('Coupon type limit exceeded');
+    this.name = 'CouponTypeLimitError';
+  }
+}

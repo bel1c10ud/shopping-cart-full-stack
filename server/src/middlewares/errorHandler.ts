@@ -3,6 +3,7 @@ import * as z from 'zod';
 import {
   CartItemNotFoundError,
   CouponNotFoundError,
+  CouponTypeLimitError,
   CouponUnavailableError,
   OrderNotFoundError,
   ProductAlreadyInCartError,
@@ -65,7 +66,7 @@ const errorHandler = (error: unknown, _req: Request, res: Response, _next: NextF
     return;
   }
 
-  if (error instanceof CouponUnavailableError) {
+  if (error instanceof CouponUnavailableError || error instanceof CouponTypeLimitError) {
     res.status(400).json({
       status: 'fail',
       data: { couponId: '사용할 수 없는 쿠폰입니다.' },

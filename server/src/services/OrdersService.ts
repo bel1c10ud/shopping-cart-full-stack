@@ -1,4 +1,10 @@
-import { CouponNotFoundError, CouponUnavailableError, OrderNotFoundError, ProductNotFoundError } from '../errors';
+import {
+  CouponNotFoundError,
+  CouponTypeLimitError,
+  CouponUnavailableError,
+  OrderNotFoundError,
+  ProductNotFoundError,
+} from '../errors';
 import CouponValidator from '../domain/CouponValidator';
 import OrderAmountCalculator from '../domain/OrderAmountCalculator';
 import { toOrderItemsWithProducts } from '../mappers/orderMapper';
@@ -234,7 +240,7 @@ class OrdersService implements OrdersServicePort {
 
       return this.orderAmountCalculator.calculate({ order: orderPreview, products, issuedCoupons: userCoupons, coupons });
     } catch (error) {
-      if (error instanceof CouponUnavailableError) return null;
+      if (error instanceof CouponUnavailableError || error instanceof CouponTypeLimitError) return null;
 
       throw error;
     }
@@ -265,7 +271,7 @@ class OrdersService implements OrdersServicePort {
 
       return false;
     } catch (error) {
-      if (error instanceof CouponUnavailableError) return true;
+      if (error instanceof CouponUnavailableError || error instanceof CouponTypeLimitError) return true;
 
       throw error;
     }

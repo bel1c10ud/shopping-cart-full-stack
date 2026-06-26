@@ -1,4 +1,4 @@
-import { CouponUnavailableError } from '../errors';
+import { CouponTypeLimitError, CouponUnavailableError } from '../errors';
 import { calculateOrderProductsAmount, getAppliedCoupons, getAppliedIssuedCoupons } from './orderResolver';
 import { Coupon, Order, Product, UserCoupon } from '../types';
 import { formatServerLocalDate } from '../util';
@@ -41,10 +41,22 @@ class CouponValidator {
   }
 
   private validateCouponTypeLimit(coupons: Coupon[]) {
-    const amountCouponCount = coupons.filter((coupon) => coupon.couponType === 'AMOUNT').length;
-    const percentCouponCount = coupons.filter((coupon) => coupon.couponType === 'PERCENT').length;
+    const amountCoupons = coupons.filter((coupon) => coupon.couponType === 'AMOUNT');
+    const percentCoupons = coupons.filter((coupon) => coupon.couponType === 'PERCENT');
 
-    if (amountCouponCount > 1 || percentCouponCount > 1) throw new CouponUnavailableError('');
+    if (amountCoupons.length > 1) {
+      throw new CouponTypeLimitError(
+        'AMOUNT',
+        amountCoupons.map((coupon) => coupon.couponId),
+      );
+    }
+
+    if (percentCoupons.length > 1) {
+      throw new CouponTypeLimitError(
+        'PERCENT',
+        percentCoupons.map((coupon) => coupon.couponId),
+      );
+    }
   }
 
   private isUsableUserCoupon(userCoupon: UserCoupon) {
