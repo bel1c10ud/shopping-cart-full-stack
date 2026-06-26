@@ -66,11 +66,7 @@ export default function CouponApplyModal({ order, onConfirm, onCancel }: CouponA
       return;
     }
 
-    setSelectedCouponIds((prev) =>
-      prev.includes(coupon.userCouponId)
-        ? prev.filter((couponId) => couponId !== coupon.userCouponId)
-        : [...prev, coupon.userCouponId],
-    );
+    setSelectedCouponIds((prev) => [...prev, coupon.userCouponId]);
   };
 
   const handleApplyRecommendation = async () => {
