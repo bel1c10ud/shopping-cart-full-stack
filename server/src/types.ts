@@ -13,7 +13,47 @@ export interface CartItem {
   quantity: number;
 }
 
-export interface Coupon {
+type OrderAmountDiscount =
+  | {
+      orderAmountDiscountType: 'NONE';
+      orderAmountDiscountValue: null;
+    }
+  | {
+      orderAmountDiscountType: 'AMOUNT' | 'PERCENT';
+      orderAmountDiscountValue: number;
+    };
+
+type ShippingFeeDiscount =
+  | {
+      shippingFeeDiscountType: 'NONE' | 'FREE';
+      shippingFeeDiscountValue: null;
+    }
+  | {
+      shippingFeeDiscountType: 'AMOUNT';
+      shippingFeeDiscountValue: number;
+    };
+
+type RemoteAreaFeeDiscount =
+  | {
+      remoteAreaFeeDiscountType: 'NONE' | 'FREE';
+      remoteAreaFeeDiscountValue: null;
+    }
+  | {
+      remoteAreaFeeDiscountType: 'AMOUNT';
+      remoteAreaFeeDiscountValue: number;
+    };
+
+type ItemDiscount =
+  | {
+      itemDiscountType: 'NONE';
+      itemDiscountValue: null;
+    }
+  | {
+      itemDiscountType: 'FREE_COUNT';
+      itemDiscountValue: number;
+    };
+
+interface CouponBase {
   couponId: string;
   couponType: 'AMOUNT' | 'PERCENT';
   code: string;
@@ -23,21 +63,11 @@ export interface Coupon {
   minOrderAmount: number | null;
   minItemCount: number | null;
 
-  orderAmountDiscountType: 'NONE' | 'AMOUNT' | 'PERCENT';
-  orderAmountDiscountValue: number | null;
-
-  shippingFeeDiscountType: 'NONE' | 'FREE' | 'AMOUNT';
-  shippingFeeDiscountValue: number | null;
-
-  remoteAreaFeeDiscountType: 'NONE' | 'FREE' | 'AMOUNT';
-  remoteAreaFeeDiscountValue: number | null;
-
-  itemDiscountType: 'NONE' | 'FREE_COUNT';
-  itemDiscountValue: number | null;
-
   availableTimeStart: string | null;
   availableTimeEnd: string | null;
 }
+
+export type Coupon = CouponBase & OrderAmountDiscount & ShippingFeeDiscount & RemoteAreaFeeDiscount & ItemDiscount;
 
 export interface UserCoupon {
   userCouponId: string;
